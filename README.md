@@ -1,154 +1,203 @@
-# Cryo MTG Life Counter para Kindle
+# Cryo MTG Life Counter for Kindle
 
-**Cryo MTG Life Counter** é um contador de vidas de **Magic: The Gathering** (formato Commander) feito como plugin do
-[KOReader](https://github.com/koreader/koreader) para **Kindle com jailbreak**.
+**Cryo MTG Life Counter** is a **Magic: The Gathering** (Commander) life counter built as a plugin for
+[KOReader](https://github.com/koreader/koreader) on a **jailbroken Kindle**.
 
-A ideia é deixar o Kindle no meio da mesa, no lugar do celular, com cada jogador lendo o próprio
-painel virado para o seu lado. Inspirado no LifeTap.
+The idea: put the Kindle in the middle of the table instead of a phone, with each player reading
+their own panel facing their side. Inspired by LifeTap.
 
 <p align="center">
-  <img src="docs/img/seis-jogadores.png" width="270" alt="Partida com 6 jogadores">
-  <img src="docs/img/dois-jogadores.png" width="270" alt="Partida com 2 jogadores, um fora por dano de comandante">
-  <img src="docs/img/campo-dano.png" width="270" alt="Campo de dano de comandante de J4 em J1">
+  <img src="docs/img/seis-jogadores.png" width="270" alt="Game with 6 players">
+  <img src="docs/img/dois-jogadores.png" width="270" alt="Game with 2 players, one knocked out by commander damage">
+  <img src="docs/img/campo-dano.png" width="270" alt="Commander damage field of P4 on P1">
 </p>
 
-> Capturas do emulador do KOReader no tamanho da tela do Kindle (1072 × 1448).
+> Screenshots from the KOReader emulator at the Kindle screen size (1072 x 1448).
 
-## Recursos
+## Features
 
-- **2 a 6 jogadores**, com os painéis girados para cada lado da mesa.
-- **Toque** soma ou subtrai 1; **segurar** soma ou subtrai 10.
-- **Veneno** por jogador: a gota com o número fica sempre à vista embaixo do painel; tocar nela
-  abre o campo de veneno (só toque, ±1).
-- **Dano de comandante** separado por oponente: embaixo de cada painel, uma miniatura da mesa mostra
-  o dano recebido de cada oponente no lugar dele. Tocar no quadradinho de um oponente abre um campo
-  em tela cheia, virado para o dono do painel, só com aquele número (toque ±1, segurar ±10).
-  O dano tira a mesma vida, e devolver dano devolve a vida.
-- **Jogador fora** (vida 0, veneno 10 ou 21 de um mesmo comandante) vira painel preto com caveira,
-  e volta ao jogo sozinho se o número for corrigido.
-- **Partida salva a cada toque**: fechar o KOReader ou acabar a bateria não perde o jogo
-  ("Continue game" / "Continuar partida" na tela inicial). "Back to main menu" / "Voltar ao menu
-  principal", no menu da partida, volta à tela inicial sem apagar nada.
-- **Inglês ou português** (padrão inglês): na tela inicial, toque na bandeira do Reino Unido ou do
-  Brasil. A escolha fica gravada em `lifecounter_lang`, na pasta de configurações do KOReader.
-  Em inglês os jogadores são P1..P6; em português, J1..J6.
-- **"Exit" / "Sair"** fecha o KOReader e volta à tela inicial do Kindle; "Open KOReader" / "Abrir o
-  KOReader" fecha só o contador.
-- **Atualização pelo ar** com o botão "Atualizar" do menu:
-  - os arquivos vêm de um Cloudflare Worker próprio, que só responde com o token certo;
-  - cada arquivo é conferido por SHA-256 contra o manifesto antes de trocar qualquer coisa;
-  - a versão anterior fica guardada e volta sozinha (rollback) se a versão nova não abrir.
-- Funciona sem rede: Wi-Fi só é preciso para atualizar.
+- **2 to 6 players**, with panels rotated to face each side of the table.
+- **Tap** adds or subtracts 1; **hold** adds or subtracts 10.
+- **Poison** per player: the drop with the number is always visible at the bottom of the panel;
+  tap it to open the poison field (tap only, +/-1).
+- **Commander damage** tracked separately per opponent: under each panel, a miniature of the table
+  shows the damage taken from each opponent, in that opponent's position. Tap an opponent's little
+  square to open a full-screen field facing the panel's owner, showing just that number
+  (tap +/-1, hold +/-10). Damage removes the same life, and lowering it gives the life back.
+- **Eliminated player** (0 life, 10 poison, or 21 damage from a single commander) turns into a black
+  panel with a skull, and revives on its own if the number is corrected.
+- **Game saved on every tap**: closing KOReader or running out of battery does not lose the game
+  ("Continue game" on the start screen). "Back to main menu", in the in-game menu, returns to the
+  start screen without erasing anything.
+- **English or Portuguese** (English by default): on the start screen, tap the UK or Brazil flag.
+  The choice is stored in `lifecounter_lang`, in KOReader's settings folder. Players are P1..P6 in
+  English and J1..J6 in Portuguese.
+- **"Exit"** closes KOReader and returns to the Kindle home screen.
+- **Over-the-air updates** with the "Update" menu button (optional, see [below](#over-the-air-updates-optional-advanced)).
+- Works offline: Wi-Fi is only needed to update.
 
-## Instalação
+## Installation
 
-Requisitos: Kindle com jailbreak e KOReader instalado.
+### Requirements
 
-1. Copie a pasta `lifecounter.koplugin` para `koreader/plugins/` no Kindle (modo USB).
-   O script `tools/push_to_kindle.sh` faz isso por você:
+- A **jailbroken Kindle**, for example with WinterBreak or AdBreak (depending on your model and firmware)
+  plus the **Universal Hotfix**. Step-by-step guides: <https://kindlemodding.org>.
+- **KOReader** installed on the Kindle (the same guides cover it).
+- **KUAL** (optional), only if you want a launcher entry.
+
+### Step by step
+
+1. **Download the project.** Clone it or download the zip from
+   <https://github.com/Tales-K/kindle-mtg-life-counter>:
 
    ```bash
-   tools/push_to_kindle.sh --usb                    # padrão: /media/$USER/Kindle
-   tools/push_to_kindle.sh --usb /caminho/do/Kindle
-   tools/push_to_kindle.sh --ssh usuario@IP 2222   # com o SSH ligado no KOReader
+   git clone https://github.com/Tales-K/kindle-mtg-life-counter.git
+   cd kindle-mtg-life-counter
    ```
 
-   No modo USB, se o Kindle tiver a pasta `extensions/` (KUAL), o script também copia
-   `kual/lifecounter` para lá. O script nunca envia nem apaga `config.lua`, `version.txt`
-   e `pending.marker` do aparelho.
+2. **Copy the plugin to the Kindle.** Connect the Kindle by USB and copy the `lifecounter.koplugin`
+   folder to `koreader/plugins/`, by hand or with the helper script:
 
-2. Abra o KOReader. O app fica em **Mais ferramentas → Cryo MTG Life Counter**.
+   ```bash
+   tools/push_to_kindle.sh --usb                    # default mount point: /media/$USER/Kindle
+   tools/push_to_kindle.sh --usb /path/to/Kindle
+   tools/push_to_kindle.sh --ssh user@IP 2222       # alternative: SSH enabled in KOReader
+   ```
 
-Atalhos opcionais:
+   The script uses `rsync`. In USB mode, if the Kindle has an `extensions/` folder (KUAL), it also
+   copies `kual/lifecounter` there. It never sends or deletes the device's `config.lua`,
+   `version.txt` and `pending.marker`.
 
-- **Biblioteca do Kindle**: com o Universal Hotfix (suporte a *scriptlets*), o plugin copia
-  `shortcut/contador-mtg.sh` para `documents/` na primeira abertura. Ele aparece na biblioteca
-  como um livro com capa própria ("CRYO" com um floco de neve), e tocar nele abre o KOReader já no contador. Se você apagar o
-  atalho, ele não volta. A capa e o script são gerados por `tools/make_shortcut.py`.
-- **KUAL**: a entrada `kual/lifecounter` (copiada para `extensions/lifecounter`) abre o KOReader já
-  dentro do contador.
-- **Gesto**: em Configurações → Toques e gestos, associe um gesto à ação **"Cryo MTG Life Counter"**.
+   Expected layout on the Kindle:
 
-Mais detalhes em [docs/dev-loop.md](docs/dev-loop.md).
+   ```
+   koreader/
+     plugins/
+       lifecounter.koplugin/
+         main.lua
+         _meta.lua
+         app.lua
+         config.example.lua
+         core/
+         ui/
+         shortcut/
+   extensions/            (only if you use KUAL)
+     lifecounter/
+       config.xml
+       menu.json
+       bin/launch.sh
+   ```
 
-## Atualização pelo ar (opcional)
+3. **Eject and open KOReader once.** Eject the Kindle safely, then start KOReader. The app is at
+   **Tools -> More tools -> Cryo MTG Life Counter**.
 
-O botão "Atualizar" baixa a versão nova de um Worker seu na Cloudflare. O Worker
-(`worker/src/index.js`) serve os arquivos de `release/` como assets estáticos e recusa com 401
-qualquer pedido sem o cabeçalho `Authorization: Bearer <token>`, comparando com o segredo
-`UPDATE_TOKEN` do Worker. Só aceita `GET`/`HEAD` em caminhos `/v1/...`, e o `manifest.json`
-sai com `Cache-Control: no-store`.
+4. **Library shortcut.** On the first launch, the app installs a "book" named **Cryo MTG Life Counter**
+   in the Kindle library (it copies `contador-mtg.sh` to `/mnt/us/documents`). This needs the
+   **scriptlet** support from the Universal Hotfix. Tapping it opens KOReader directly in the counter,
+   and **Exit** closes KOReader and returns to the Kindle home screen. If you delete the shortcut,
+   it is not reinstalled.
 
-### 1. Gerar a release
+5. **Optional extras:**
+   - **KUAL:** the `kual/lifecounter` folder, copied to `extensions/` (the script does it in USB mode),
+     adds a "Cryo MTG Life Counter" entry that opens KOReader already inside the counter.
+   - **Gesture:** in KOReader, Settings -> Taps and gestures, bind a gesture to the
+     **"Cryo MTG Life Counter"** action (Dispatcher).
+
+## Quick usage
+
+- **Panels:** tap the right half of a panel for +1 and the left half for -1 (from that player's side of the table); **hold** for +/-10.
+- **Commander damage:** the little squares in the miniature are one per opponent. Tap one to open
+  that opponent's field (single number). **21** from one commander eliminates the player.
+- **Poison:** tap the drop. **10** eliminates the player.
+- **Reviving:** lowering the number that caused the elimination brings the player back.
+- **MENU** (center of the table): Back to game, Back to main menu, Restart game, New game, Exit.
+- **Language:** pick the flag on the start screen (English by default).
+- **Screen stays on:** the Kindle does not sleep during a game, until 30 minutes without a touch.
+- **Saving:** the game is saved on every tap.
+
+## Over-the-air updates (optional, advanced)
+
+The "Update" button downloads a new version from your own Cloudflare Worker. The Worker
+(`worker/src/index.js`) serves the files from `release/` as static assets and answers 401 to any
+request without an `Authorization: Bearer <token>` header matching its `UPDATE_TOKEN` secret.
+It only accepts `GET`/`HEAD` on `/v1/...` paths, and `manifest.json` is sent with `Cache-Control: no-store`.
+
+### 1. Build the release
 
 ```bash
-python3 tools/build_release.py --version 2    # número inteiro, maior que o instalado
+python3 tools/build_release.py --version 2    # integer, higher than the installed one
 ```
 
-Gera `release/v1/` com os arquivos do plugin e um `manifest.json` (versão inteira, caminho,
-SHA-256 e tamanho de cada arquivo). Ficam de fora os arquivos que o atualizador nunca troca
-(`main.lua`, `_meta.lua`, `core/updater.lua`, `core/fs.lua`) e os privados ou locais
-(`config.lua`, `version.txt`, `pending.marker`). A pasta `release/` não vai para o git.
+This creates `release/v1/` with the plugin files and a `manifest.json` (integer version, path,
+SHA-256 and size of each file). Files the updater never replaces (`main.lua`, `_meta.lua`,
+`core/updater.lua`, `core/fs.lua`) and private/local ones (`config.lua`, `version.txt`,
+`pending.marker`) are left out. `release/` is not tracked by git.
 
-### 2. Publicar o Worker
+### 2. Deploy the Worker
 
-O `wrangler` não está nas dependências; use via `npx`. Ajuste `name` em `worker/wrangler.toml`
-se quiser outro nome.
+`wrangler` is not a dependency; use it through `npx`. Change `name` in `worker/wrangler.toml`
+if you want a different Worker name.
 
 ```bash
 cd worker
 npx wrangler login
-openssl rand -base64 32                    # um jeito de gerar um token
-npx wrangler secret put UPDATE_TOKEN       # cole o token quando pedir
-npx wrangler deploy                        # publica o Worker e os assets de ../release
+openssl rand -base64 32                    # one way to generate a token
+npx wrangler secret put UPDATE_TOKEN       # paste the token when asked
+npx wrangler deploy                        # publishes the Worker and the assets from ../release
 ```
 
-Rode `build_release.py` antes de cada `wrangler deploy`: os assets são lidos de `../release`
-no momento do deploy.
+Run `build_release.py` before every `wrangler deploy`: the assets are read from `../release` at deploy time.
 
-### 3. Configurar o Kindle
+### 3. Configure the Kindle
 
-Copie `lifecounter.koplugin/config.example.lua` para `config.lua` na pasta do plugin **no Kindle**
-e preencha:
+Copy `lifecounter.koplugin/config.example.lua` to `config.lua` in the plugin folder **on the Kindle**
+and fill it in:
 
 ```lua
 return {
-    url = "https://kindle-life.SEU-SUBDOMINIO.workers.dev/v1/",
-    token = "COLE-AQUI-O-TOKEN",
+    url = "https://kindle-life.YOUR-SUBDOMAIN.workers.dev/v1/",
+    token = "PASTE-THE-TOKEN-HERE",
 }
 ```
 
-O `config.lua` real está no `.gitignore` e nunca deve ir para o repositório.
+The real `config.lua` is in `.gitignore` and must never be committed.
 
-## Desenvolvimento
+### Integrity and rollback
 
-Testes:
+Every file is checked against the manifest's SHA-256 before anything is replaced. The previous
+version is kept, and if the new one fails to load, the plugin rolls back to it automatically on the
+next start.
+
+## Development
+
+Tests:
 
 ```bash
-luajit tests/run.lua                               # lógica do plugin (Lua)
-python3 -m unittest discover -s tools -p 'test_*.py'   # gerador de release
-cd worker && node --test                           # Worker
+luajit tests/run.lua                                   # plugin logic (Lua)
+python3 -m unittest discover -s tools -p 'test_*.py'   # release generator
+cd worker && npm test                                  # Worker (node --test test/*.test.js)
 ```
 
-Para testar a interface sem o Kindle, use o emulador do KOReader no PC numa janela do tamanho
-da tela do Kindle (1072 × 1448). O passo a passo, incluindo `LIFECOUNTER_AUTOSTART=1` para abrir
-o app direto e `tools/screenshot.py` para capturar a janela, está em
-[docs/dev-loop.md](docs/dev-loop.md).
+To try the UI without a Kindle, use the KOReader emulator on your PC in a window sized like the
+Kindle screen (1072 x 1448). The walkthrough, including `LIFECOUNTER_AUTOSTART=1` to open the app
+directly and `tools/screenshot.py` to capture the window, is in
+[docs/dev-loop.md](docs/dev-loop.md) (note: that document is in Portuguese).
 
-Estrutura:
+Project layout:
 
 ```
-lifecounter.koplugin/   plugin do KOReader
-  main.lua, app.lua       entrada do plugin, menu e ações
-  core/                   regras do jogo, gravação, geometria, atualizador (testáveis no PC)
-  ui/                     telas e desenho dos painéis
-kual/lifecounter/       entrada opcional no KUAL
-worker/                 Cloudflare Worker das atualizações (+ testes)
-tools/                  build da release, envio ao Kindle, captura de tela
-tests/                  testes em Lua (luajit tests/run.lua)
-docs/                   ciclo de desenvolvimento, aceite e notas de projeto
+lifecounter.koplugin/   KOReader plugin
+  main.lua, app.lua       plugin entry point, menu and actions
+  core/                   game rules, saving, geometry, updater (testable on a PC)
+  ui/                     screens and panel drawing
+  shortcut/               library shortcut script (generated by tools/make_shortcut.py)
+kual/lifecounter/       optional KUAL entry
+worker/                 Cloudflare Worker for updates (+ tests)
+tools/                  release build, push to Kindle, screenshot, shortcut generator
+tests/                  Lua tests (luajit tests/run.lua)
+docs/                   development loop, acceptance and project notes (mostly in Portuguese)
 ```
 
-## Licença
+## License
 
-MIT. Veja [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
