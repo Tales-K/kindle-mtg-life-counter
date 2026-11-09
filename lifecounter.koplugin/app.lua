@@ -58,7 +58,9 @@ local show_start, show_board, new_game
 local function set_awake(on)
     local Device = require("device")
     if Device:isKindle() then
-        os.execute("lipc-set-prop com.lab126.powerd preventScreenSaver " .. (on and "1" or "0"))
+        -- Em segundo plano: ao liberar (0) o Kindle pode entrar em descanso na hora e avisar o
+        -- KOReader; se o KOReader estiver parado esperando este comando, os dois travam.
+        os.execute("lipc-set-prop com.lab126.powerd preventScreenSaver " .. (on and "1" or "0") .. " >/dev/null 2>&1 &")
     end
 end
 local keep = KeepAwake.new{ timeout = Tuning.KEEP_AWAKE_S, set = set_awake }
