@@ -136,13 +136,6 @@ function Draw.drop(bb, cx, cy, s, color)
     Draw.trapezoid(bb, cx, cy - s * 0.5, cy + s * 0.5 - r * 1.15, 0, r * 0.95, color)
 end
 
--- Escudo (comandante) de altura s.
-function Draw.shield(bb, cx, cy, s, color)
-    local w = s * 0.42
-    Draw.rect(bb, cx - w, cy - s * 0.5, 2 * w, s * 0.55, color)
-    Draw.trapezoid(bb, cx, cy + s * 0.05, cy + s * 0.5, w, 0, color)
-end
-
 -- Caveira de altura s, na cor fg, com olhos/nariz/dentes na cor bg.
 function Draw.skull(bb, cx, cy, s, fg, bg)
     local top, bot = cy - s / 2, cy + s / 2

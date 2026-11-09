@@ -31,7 +31,7 @@ function Board:init()
     }
 end
 
--- Chamado quando a tela volta a ficar por cima (ex.: depois de fechar a de comandante).
+-- Chamado quando a tela volta a ficar por cima (ex.: depois de fechar o campo unico).
 function Board:rearm()
     self.guard:arm(socket.gettime())
 end
@@ -50,9 +50,9 @@ function Board:_panel(index)
 end
 
 function Board:_act(index, zone, big, rotation)
-    local result = Actions.on_panel(self.game, self.store, index, zone, big)
+    local result, field = Actions.on_panel(self.game, self.store, index, zone, big)
     if result == "open" then
-        if self.on_commander then self.on_commander(index, rotation) end
+        if self.on_open then self.on_open(index, rotation, field) end
         return
     end
     if result ~= "changed" then return end
@@ -61,6 +61,11 @@ function Board:_act(index, zone, big, rotation)
     local region = Geom:new{ x = p.x, y = p.y, w = p.w, h = p.h }
     UIManager:setDirty(self, function() return Tuning.REFRESH_MODE, region end)
     if self.changes % Tuning.FULL_REFRESH_EVERY == 0 then UIManager:setDirty(self, "full") end
+end
+
+function Board:_zone(hit)
+    local p = hit.panel
+    return Layout.zone_at(p.w, p.h, self.game.player_count, p.rotation, hit.index, hit.lx, hit.ly)
 end
 
 function Board:onTap(_, ges)
@@ -72,8 +77,7 @@ function Board:onTap(_, ges)
         if self:_in_center(pos) and self.on_menu then self.on_menu() end
         return true
     end
-    local zone = Layout.zone_at(hit.panel.w, hit.panel.h, hit.lx, hit.ly)
-    self:_act(hit.index, zone, false, hit.panel.rotation)
+    self:_act(hit.index, self:_zone(hit), false, hit.panel.rotation)
     return true
 end
 
@@ -84,7 +88,7 @@ function Board:onHold(_, ges)
     if mode == "buttons" then return true end
     local hit = Layout.hit(self.layout, ges.pos.x, ges.pos.y)
     if not hit then return true end
-    local zone = Layout.zone_at(hit.panel.w, hit.panel.h, hit.lx, hit.ly)
+    local zone = self:_zone(hit)
     if mode == "hold" then
         self:_act(hit.index, zone, true)
     else

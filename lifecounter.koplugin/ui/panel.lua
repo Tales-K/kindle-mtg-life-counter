@@ -1,6 +1,6 @@
 -- Desenho de um painel de jogador no visual A2 (so KOReader): a vida ocupa o painel (metade
--- esquerda tira, direita soma), veneno discreto no canto e, embaixo, a mesa em miniatura com o
--- dano de comandante recebido de cada oponente. Jogador fora: painel preto com caveira.
+-- esquerda tira, direita soma) e, embaixo, a gota do veneno (sempre visivel, mesmo 0) e a mesa em
+-- miniatura com o dano de comandante recebido de cada oponente. Jogador fora: painel preto com caveira.
 local Blitbuffer = require("ffi/blitbuffer")
 local Device = require("device")
 local Draw = require("ui/draw")
@@ -25,7 +25,8 @@ local function minimap(bb, g, game, index, rotation, fg, bg)
             Draw.border_round(bb, r, math.max(2, math.floor(4 * k + 0.5)), fg, radius)
             local v = cmd[c.index] or 0
             if v > 0 then
-                Draw.text(bb, cx, cy, tostring(v), math.min(52 * k, r.h * 0.74, r.w * 0.62 / math.max(1, #tostring(v) - 1)),
+                local digits = #tostring(v)
+                Draw.text(bb, cx, cy, tostring(v), math.min(52 * k, r.h * 0.74, digits > 1 and r.w * 0.5 / (digits - 1) or r.w * 0.62),
                     { bold = true, color = fg })
             else
                 Draw.text(bb, cx, cy, "0", math.min(30 * k, r.h * 0.45), { color = fg })
@@ -50,18 +51,11 @@ function Panel.render(game, index, pw, ph, rotation)
     end
 
     Draw.text(bb, g.label.x, g.label.cy, "J" .. index, g.label.size, { bold = true, color = fg, align = "left" })
-    if player.poison > 0 then
-        local p = g.poison
-        local w = Draw.text(bb, p.right, p.cy, tostring(player.poison), p.size, { bold = true, color = fg, align = "right" })
-        Draw.drop(bb, p.right - w - p.gap, p.cy, p.drop, fg)
-    end
 
     Draw.border_round(bb, g.strip, g.strip.width, fg, g.strip.radius)
-    if g.icon then
-        local i = g.icon
-        Draw.shield(bb, i.cx, i.cy - i.dy, i.size, fg)
-        Draw.text(bb, i.cx, i.cy + i.text_dy, "cmd", i.text_size, { color = fg })
-    end
+    local i = g.icon
+    Draw.drop(bb, i.cx, i.cy - i.drop_dy, i.drop, fg)
+    Draw.text(bb, i.cx, i.cy + i.text_dy, tostring(player.poison), i.text_size, { bold = true, color = fg })
     minimap(bb, g, game, index, rotation, fg, bg)
 
     Draw.minus(bb, g.glyph.dx, g.gy, g.glyph.size, fg)

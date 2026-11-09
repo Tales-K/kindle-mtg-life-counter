@@ -73,7 +73,7 @@ local function activity() keep:touch(socket.gettime()) end
 
 show_board = function(plugin, store, game)
     local Board = require("ui/board")
-    local Commander = require("ui/commander")
+    local Field = require("ui/field")
     UIManager:preventStandby()
     local board
     local function close_board()
@@ -114,10 +114,12 @@ show_board = function(plugin, store, game)
                 end },
             })
         end,
-        on_commander = function(i)
+        -- Toque num quadradinho de oponente ou na gota: campo unico virado para o dono do painel.
+        on_open = function(owner, rotation, field)
             local view
-            view = Commander:new{
-                game = game, store = store, target = i, on_activity = activity,
+            view = Field:new{
+                game = game, store = store, owner = owner, field = field, rotation = rotation,
+                on_activity = activity,
                 on_close = function() UIManager:close(view, "ui"); board:rearm() end,
             }
             UIManager:show(view, "ui")
@@ -255,29 +257,40 @@ function App.open(plugin)
     local demo = tonumber(os.getenv("LIFECOUNTER_DEMO") or "")
     if demo then
         local board = show_board(plugin, store, demo_game(demo))
-        local dc = tonumber((os.getenv("LIFECOUNTER_DEMO_COMMANDER") or ""):match("^(%d+)") or "")
-        if dc then
-            -- "alvo": abre a tela de dano do alvo (a faixa gira sozinha se ele esta em cima) e simula
-            -- 2 toques em + no 1o oponente, 1 segurar em + no 2o (se houver) e 1 toque no veneno +.
-            board.on_commander(dc)
-            local View = require("core.commander_view")
+        -- "dono:oponente[:toques]" ou "dono:v[:toques]": toca no quadradinho do oponente (ou na gota)
+        -- no painel do dono, como um jogador faria, e depois simula os toques no campo unico:
+        -- "+"/"-" tocar, "H"/"h" segurar em +/-, "o" OK. Padrao: "++H".
+        local owner, what, script = (os.getenv("LIFECOUNTER_DEMO_COMMANDER") or ""):match("^(%d+):(%w+):?([%+%-Hho]*)$")
+        owner = tonumber(owner)
+        local panel
+        for _, q in ipairs(board.layout.panels) do if q.index == owner then panel = q end end
+        if panel then
             local Geom = require("ui/geometry")
-            local top = UIManager._window_stack[#UIManager._window_stack].widget
-            local l = top.layout
+            local Layout = require("core.layout")
+            local View = require("core.field_view")
             local function send(kind, rect, rotation, lx, ly, delay)
-                local x, y = View.screen_point(rect, rotation, lx, ly)
+                local x, y = rect.x + math.floor(lx), rect.y + math.floor(ly)
+                if rotation == 180 then x, y = rect.x + rect.w - 1 - math.floor(lx), rect.y + rect.h - 1 - math.floor(ly) end
                 UIManager:scheduleIn(delay, function()
                     UIManager:sendEvent(Event:new("Gesture", { ges = kind, pos = Geom:new{ x = x, y = y, w = 0, h = 0 }, time = 0 }))
                 end)
             end
-            local opponents = {}
-            for _, c in ipairs(l.cells) do if c.index ~= dc then opponents[#opponents + 1] = c end end
-            local o1, o2 = opponents[1], opponents[2]
-            send("tap", o1, o1.rotation, o1.w - 20, math.floor(o1.h / 2), 1)
-            send("tap", o1, o1.rotation, o1.w - 20, math.floor(o1.h / 2), 1.5)
-            if o2 then send("hold", o2, o2.rotation, o2.w - 20, math.floor(o2.h / 2), 2) end
-            local pp = l.controls.poison_plus
-            send("tap", l.band, l.band.rotation, pp.x + 5, pp.y + 5, 2.5)
+            local g = Layout.panel(panel.w, panel.h, demo)
+            local lx, ly = g.icon.cx, g.icon.cy
+            local m = g.minimap
+            for _, c in ipairs(Layout.minimap(demo, panel.rotation, m.w, m.h)) do
+                if c.index == tonumber(what) then lx, ly = m.x + c.x + c.w / 2, m.y + c.y + c.h / 2 end
+            end
+            send("tap", panel, panel.rotation, lx, ly, 1)
+            local screen = board.dimen
+            local fl = View.layout(screen.w, screen.h, panel.rotation)
+            local t = 2
+            for ch in (script ~= "" and script or "++H"):gmatch(".") do
+                local zone = (ch == "+" or ch == "H") and "plus" or (ch == "-" or ch == "h") and "minus" or "ok"
+                local r = fl.zones[zone]
+                send((ch == "H" or ch == "h") and "hold" or "tap", screen, panel.rotation, r.x + r.w / 2, r.y + r.h / 2, t)
+                t = t + 0.7
+            end
         end
         run_sim()
         return
