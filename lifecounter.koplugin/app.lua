@@ -301,6 +301,15 @@ function App.open(plugin)
     if RollbackNotice.take(Fs, plugin.path, DataStorage:getDataDir() .. "/lifecounter_backup") then
         info("A ultima atualizacao nao abriu e foi desfeita. Voce esta na versao " .. version_of(plugin) .. ".")
     end
+    -- Atalho "Contador MTG" na biblioteca do Kindle (scriptlet do Universal Hotfix), uma vez.
+    local Device = require("device")
+    if Device:isKindle() then
+        local ok, result = pcall(require("core.shortcut").install, Fs, plugin.path .. "/shortcut/contador-mtg.sh",
+            "/mnt/us/documents", DataStorage:getSettingsDir() .. "/lifecounter_shortcut")
+        if ok and result == "installed" then
+            info("Atalho \"Contador MTG\" adicionado a biblioteca do Kindle. Na tela inicial do Kindle, toque nele para abrir direto o contador.")
+        end
+    end
     run_sim()
 end
 

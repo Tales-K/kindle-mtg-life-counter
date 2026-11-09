@@ -55,6 +55,10 @@ Requisitos: Kindle com jailbreak e KOReader instalado.
 
 Atalhos opcionais:
 
+- **Biblioteca do Kindle**: com o Universal Hotfix (suporte a *scriptlets*), o plugin copia
+  `shortcut/contador-mtg.sh` para `documents/` na primeira abertura. Ele aparece na biblioteca
+  como um livro com capa própria, e tocar nele abre o KOReader já no contador. Se você apagar o
+  atalho, ele não volta. A capa e o script são gerados por `tools/make_shortcut.py`.
 - **KUAL**: a entrada `kual/lifecounter` (copiada para `extensions/lifecounter`) abre o KOReader já
   dentro do contador.
 - **Gesto**: em Configurações → Toques e gestos, associe um gesto à ação **"Contador MTG"**.
@@ -116,7 +120,7 @@ Testes:
 
 ```bash
 luajit tests/run.lua                               # lógica do plugin (Lua)
-python3 -m unittest tools/test_build_release.py    # gerador de release
+python3 -m unittest discover -s tools -p 'test_*.py'   # gerador de release
 cd worker && node --test                           # Worker
 ```
 
