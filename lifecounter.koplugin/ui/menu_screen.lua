@@ -64,11 +64,11 @@ local function paint_language(bb, r)
         local box = { x = r.x + (i - 1) * (half + gap), y = r.y, w = half, h = r.h }
         local on = lang == active
         Draw.border_round(bb, box, on and 9 or 2, Blitbuffer.COLOR_BLACK, math.floor(r.h * 0.12))
-        local fh = math.floor(r.h * 0.46)
-        local cy = box.y + math.floor(r.h * 0.38)
+        local fh = math.floor(r.h * 0.52)
+        local cy = box.y + math.floor(r.h * 0.39)
         Draw.flag(bb, lang, box.x + box.w / 2, cy, fh)
-        Draw.text(bb, box.x + box.w / 2, box.y + math.floor(r.h * 0.80), I18n.t("lang_" .. lang),
-            math.floor(r.h * 0.19), { bold = on })
+        Draw.text(bb, box.x + box.w / 2, box.y + math.floor(r.h * 0.83), I18n.t("lang_" .. lang),
+            math.floor(r.h * 0.17), { bold = on })
     end
 end
 

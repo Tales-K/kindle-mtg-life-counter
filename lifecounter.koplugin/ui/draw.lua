@@ -155,8 +155,9 @@ function Draw.skull(bb, cx, cy, s, fg, bg)
     end
 end
 
--- Pinta (w x h) em (x0, y0) pixel a pixel: fn(u, v) devolve a cor no ponto (u, v) em [0,1)x[0,1)
--- (centro do pixel) ou nil para deixar como esta. Junta pixels vizinhos da mesma cor numa faixa.
+-- Pinta (w x h) em (x0, y0) pixel a pixel: fn(u, v) devolve o tom de cinza (0 preto .. 255 branco)
+-- no ponto (u, v) em [0,1)x[0,1) (centro do pixel) ou nil para deixar como esta. Junta pixels
+-- vizinhos do mesmo tom numa faixa. (Tons como numeros: cores do Blitbuffer nao comparam com nil.)
 function Draw.raster(bb, x0, y0, w, h, fn)
     x0, y0, w, h = math.floor(x0 + 0.5), math.floor(y0 + 0.5), math.floor(w + 0.5), math.floor(h + 0.5)
     for py = 0, h - 1 do
@@ -165,7 +166,7 @@ function Draw.raster(bb, x0, y0, w, h, fn)
         for px = 0, w do
             local c = px < w and fn((px + 0.5) / w, v) or nil
             if c ~= run_c then
-                if run_c then bb:paintRect(x0 + run_x, y0 + py, px - run_x, 1, run_c) end
+                if run_c then bb:paintRect(x0 + run_x, y0 + py, px - run_x, 1, Blitbuffer.Color8(run_c)) end
                 run_x, run_c = px, c
             end
         end
@@ -173,9 +174,8 @@ function Draw.raster(bb, x0, y0, w, h, fn)
 end
 
 -- Bandeiras em tons de cinza (o e-ink nao tem cor), so com retangulos.
-local function gray(v) return Blitbuffer.Color8(v) end
-local UK_BLUE, UK_RED, FLAG_WHITE = gray(0x70), BLACK, Blitbuffer.COLOR_WHITE
-local BR_GREEN, BR_YELLOW, BR_BLUE = gray(0x80), gray(0xD8), gray(0x30)
+local UK_BLUE, UK_RED, FLAG_WHITE = 0x70, 0x00, 0xFF
+local BR_GREEN, BR_YELLOW, BR_BLUE = 0x80, 0xD8, 0x30
 
 -- Union Jack (2:1): campo azul, aspas brancas com as vermelhas deslocadas (contratrocadas),
 -- cruz branca larga e cruz vermelha de Sao Jorge. Medidas oficiais em 60 x 30.
@@ -197,15 +197,16 @@ local function uk(u, v)
 end
 
 -- Bandeira do Brasil (10:7), em modulos 20 x 14: campo verde, losango amarelo, circulo azul
--- e a faixa branca (arco de um circulo maior com centro abaixo e a esquerda).
+-- e a faixa branca: arcos de raio 8 e 8,5 com centro 2 modulos a esquerda do pe do diametro
+-- vertical do circulo na base da bandeira (Lei 5.700).
 local function br(u, v)
     local x, y = u * 20, v * 14
     local cx, cy = 10, 7
     local ddx, ddy = x - cx, y - cy
     if ddx * ddx + ddy * ddy <= 3.5 * 3.5 then
-        local bx, by = x - (cx - 2), y - (cy + 12)
+        local bx, by = x - (cx - 2), y - 14
         local d = math.sqrt(bx * bx + by * by)
-        if d >= 11.6 and d <= 12.3 then return FLAG_WHITE end
+        if d >= 8 and d <= 8.5 then return FLAG_WHITE end
         return BR_BLUE
     end
     if math.abs(ddx) / 8.3 + math.abs(ddy) / 5.3 <= 1 then return BR_YELLOW end
