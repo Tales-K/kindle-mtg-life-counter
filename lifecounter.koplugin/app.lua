@@ -6,6 +6,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
 local Fs = require("core.fs")
+local I18n = require("core.i18n")
 local Game = require("core.game")
 local KeepAwake = require("core.keep_awake")
 local Tuning = require("core.tuning")
@@ -18,6 +19,14 @@ local Store = require("core.store")
 local App = {}
 
 local function info(text) UIManager:show(InfoMessage:new{ text = text }) end
+local t = I18n.t
+
+-- Idioma escolhido na tela inicial ("en"/"pt"); sem o arquivo, ingles.
+local function lang_path() return DataStorage:getSettingsDir() .. "/lifecounter_lang" end
+
+local function confirm(text, ok_text, ok_callback)
+    UIManager:show(ConfirmBox:new{ text = text, ok_text = ok_text, cancel_text = t("cancel"), ok_callback = ok_callback })
+end
 
 -- Menu em tela cheia e modal (um ButtonDialog comum ficaria ESCONDIDO atras da tela de jogo, que e modal).
 local function show_menu(title, items)
@@ -30,7 +39,7 @@ local function with_actions(items, actions)
     local out = {}
     for i, it in ipairs(items) do
         local a = actions[it.id] or {}
-        out[i] = { text = it.text, callback = a.callback, stay = a.stay }
+        out[i] = { text = it.text, kind = it.kind, callback = a.callback, stay = a.stay }
     end
     return out
 end
@@ -100,20 +109,22 @@ show_board = function(plugin, store, game)
     board = Board:new{
         game = game, store = store, on_activity = activity,
         on_menu = function()
-            show_menu("Menu", with_actions(Menus.game(), {
+            show_menu(t("game_menu_title"), with_actions(Menus.game(), {
                 back = {},
+                -- Fecha a partida (fica salva) e volta para a tela inicial; o close_board para o modo acordado.
+                main_menu = { stay = true, callback = function(menu)
+                    show_start(plugin, store)
+                    close_board()
+                    menu:close()
+                end },
                 restart = { stay = true, callback = function(menu)
-                    UIManager:show(ConfirmBox:new{
-                        text = "Reiniciar a partida? Vida, veneno e dano de comandante voltam ao inicio.",
-                        ok_text = "Reiniciar",
-                        ok_callback = function()
-                            local fresh = Game.new(game.player_count, game.starting_life)
-                            store:save(fresh:to_table())
-                            show_board(plugin, store, fresh)
-                            close_board()
-                            menu:close()
-                        end,
-                    })
+                    confirm(t("confirm_restart"), t("confirm_restart_ok"), function()
+                        local fresh = Game.new(game.player_count, game.starting_life)
+                        store:save(fresh:to_table())
+                        show_board(plugin, store, fresh)
+                        close_board()
+                        menu:close()
+                    end)
                 end },
                 new = { stay = true, callback = function(menu)
                     new_game(plugin, store, true, menu, close_board)
@@ -147,29 +158,29 @@ end
 local function choose_life(plugin, store, count)
     local items = {}
     for _, life in ipairs({ 20, 30, 40, 50 }) do
-        items[#items + 1] = { text = life == 40 and "40 (padrao commander)" or tostring(life), callback = function()
+        items[#items + 1] = { text = life == 40 and t("life_default", { n = life }) or tostring(life), callback = function()
             local game = Game.new(count, life)
             store:save(game:to_table())
             show_board(plugin, store, game)
         end }
     end
-    items[#items + 1] = { text = "Voltar", stay = true, callback = function(menu)
+    items[#items + 1] = { text = t("back"), stay = true, callback = function(menu)
         menu:close()
         App.pick_players(plugin, store)
     end }
-    show_menu("Vida inicial", items)
+    show_menu(t("life_title"), items)
 end
 
 function App.pick_players(plugin, store)
     local items = {}
     for n = 2, 6 do
-        items[#items + 1] = { text = n .. " jogadores", callback = function() choose_life(plugin, store, n) end }
+        items[#items + 1] = { text = t("players_n", { n = n }), callback = function() choose_life(plugin, store, n) end }
     end
-    items[#items + 1] = { text = "Voltar", stay = true, callback = function(menu)
+    items[#items + 1] = { text = t("back"), stay = true, callback = function(menu)
         menu:close()
         show_start(plugin, store)
     end }
-    show_menu("Quantos jogadores?", items)
+    show_menu(t("pick_players_title"), items)
 end
 
 -- from_menu: o menu que chamou (sera fechado depois que o proximo estiver na tela).
@@ -180,10 +191,7 @@ new_game = function(plugin, store, has_saved, from_menu, before)
         if from_menu then from_menu:close() end
     end
     if has_saved then
-        UIManager:show(ConfirmBox:new{
-            text = "Isso substitui a partida salva. Continuar?",
-            ok_text = "Nova partida", ok_callback = go,
-        })
+        confirm(t("confirm_new"), t("confirm_new_ok"), go)
     else
         go()
     end
@@ -213,22 +221,18 @@ local function update(plugin)
     NetworkMgr:runWhenOnline(function()
         local r = updater:check()
         if r.state == "error" then return info(Messages.describe(r.err)) end
-        if r.state == "up_to_date" then return info("Ja esta na versao " .. r.version .. ".") end
-        UIManager:show(ConfirmBox:new{
-            text = "Versao " .. r.version .. " disponivel. Instalar?",
-            ok_text = "Instalar",
-            ok_callback = function()
-                local ok, err = updater:install(r.manifest)
-                if not ok then
-                    -- Falha ja avisada aqui; um backup igual a versao atual nao deve virar aviso de rollback depois.
-                    RollbackNotice.take(Fs, plugin.path, DataStorage:getDataDir() .. "/lifecounter_backup")
-                    return info(Messages.describe(err))
-                end
-                info("Atualizado para a versao " .. r.version .. ". Reiniciando o KOReader...")
-                UIManager:forceRePaint()
-                UIManager:scheduleIn(3, function() UIManager:restartKOReader() end)
-            end,
-        })
+        if r.state == "up_to_date" then return info(t("update_up_to_date", { version = r.version })) end
+        confirm(t("update_available", { version = r.version }), t("update_install"), function()
+            local ok, err = updater:install(r.manifest)
+            if not ok then
+                -- Falha ja avisada aqui; um backup igual a versao atual nao deve virar aviso de rollback depois.
+                RollbackNotice.take(Fs, plugin.path, DataStorage:getDataDir() .. "/lifecounter_backup")
+                return info(Messages.describe(err))
+            end
+            info(t("update_done", { version = r.version }))
+            UIManager:forceRePaint()
+            UIManager:scheduleIn(3, function() UIManager:restartKOReader() end)
+        end)
     end)
 end
 
@@ -239,9 +243,17 @@ show_start = function(plugin, store)
         new = { stay = true, callback = function(menu) new_game(plugin, store, saved ~= nil, menu) end },
         update = { stay = true, callback = function() update(plugin) end },
         koreader = {},
+        -- Toque numa bandeira escolhe aquele idioma, grava e redesenha a tela inicial na hora.
+        language = { stay = true, callback = function(menu, pos, rect)
+            local lang = Menus.language_at(rect, pos.x)
+            if lang == I18n.lang() then return end
+            I18n.save(Fs, lang_path(), lang)
+            show_start(plugin, store)
+            menu:close()
+        end },
         exit = { callback = exit_koreader },
     })
-    show_menu("Contador MTG  (v" .. version_of(plugin) .. ")", items)
+    show_menu(t("start_title", { version = version_of(plugin) }), items)
 end
 
 local function run_sim()
@@ -260,6 +272,9 @@ end
 
 function App.open(plugin)
     local store = Store.new(DataStorage:getSettingsDir() .. "/lifecounter_state.lua")
+    I18n.load(Fs, lang_path())
+    -- Gancho so de desenvolvimento: LIFECOUNTER_LANG=en|pt forca o idioma (sem gravar).
+    if os.getenv("LIFECOUNTER_LANG") then I18n.set(os.getenv("LIFECOUNTER_LANG")) end
 
     -- Ganchos so de desenvolvimento (emulador).
     local demo = tonumber(os.getenv("LIFECOUNTER_DEMO") or "")
@@ -307,15 +322,15 @@ function App.open(plugin)
     show_start(plugin, store)
     -- Depois de um rollback automatico (versao nova nao abriu), avisa uma vez, por cima do menu.
     if RollbackNotice.take(Fs, plugin.path, DataStorage:getDataDir() .. "/lifecounter_backup") then
-        info("A ultima atualizacao nao abriu e foi desfeita. Voce esta na versao " .. version_of(plugin) .. ".")
+        info(t("rollback_notice", { version = version_of(plugin) }))
     end
-    -- Atalho "Contador MTG" na biblioteca do Kindle (scriptlet do Universal Hotfix), uma vez.
+    -- Atalho "Cryo MTG Life Counter" na biblioteca do Kindle (scriptlet do Universal Hotfix), uma vez.
     local Device = require("device")
     if Device:isKindle() then
         local ok, result = pcall(require("core.shortcut").install, Fs, plugin.path .. "/shortcut/contador-mtg.sh",
             "/mnt/us/documents", DataStorage:getSettingsDir() .. "/lifecounter_shortcut")
         if ok and result == "installed" then
-            info("Atalho \"Contador MTG\" adicionado a biblioteca do Kindle. Na tela inicial do Kindle, toque nele para abrir direto o contador.")
+            info(t("shortcut_installed"))
         end
     end
     run_sim()

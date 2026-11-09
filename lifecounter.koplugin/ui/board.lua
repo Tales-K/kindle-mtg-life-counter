@@ -9,6 +9,7 @@ local Actions = require("core.actions")
 local Layout = require("core.layout")
 local Panel = require("ui/panel")
 local Draw = require("ui/draw")
+local I18n = require("core.i18n")
 local Guard = require("core.input_guard")
 local Tuning = require("core.tuning")
 local socket = require("socket")
@@ -132,7 +133,7 @@ function Board:paintTo(bb, x, y)
     local bw, pad = math.floor(220 * k), math.floor(10 * k)
     local button = { x = c.x + math.floor((c.w - bw) / 2), y = c.y + pad, w = bw, h = c.h - 2 * pad }
     Draw.border_round(bb, button, lw, Blitbuffer.COLOR_BLACK, math.floor(14 * k))
-    Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, "MENU", 36 * k, { bold = true })
+    Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, I18n.t("menu_button"), 36 * k, { bold = true })
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
     if self.guard.waiting_paint then

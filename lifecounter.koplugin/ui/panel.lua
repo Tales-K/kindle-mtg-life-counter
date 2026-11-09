@@ -4,6 +4,7 @@
 local Blitbuffer = require("ffi/blitbuffer")
 local Device = require("device")
 local Draw = require("ui/draw")
+local I18n = require("core.i18n")
 local Layout = require("core.layout")
 local Screen = Device.screen
 
@@ -20,7 +21,7 @@ local function minimap(bb, g, game, index, rotation, fg, bg)
         local cx, cy = r.x + r.w / 2, r.y + r.h / 2
         if c.index == index then
             Draw.fill_round(bb, r, fg, radius)
-            Draw.text(bb, cx, cy, "você", math.min(26 * k, r.h * 0.42, r.w * 0.24), { bold = true, color = bg })
+            Draw.text(bb, cx, cy, I18n.t("you"), math.min(26 * k, r.h * 0.42, r.w * 0.24), { bold = true, color = bg })
         else
             Draw.border_round(bb, r, math.max(2, math.floor(4 * k + 0.5)), fg, radius)
             local v = cmd[c.index] or 0
@@ -50,7 +51,7 @@ function Panel.render(game, index, pw, ph, rotation)
         Draw.border_round(bb, { x = b.inset, y = b.inset, w = pw - 2 * b.inset, h = ph - 2 * b.inset }, b.width, fg, b.radius)
     end
 
-    Draw.text(bb, g.label.x, g.label.cy, "J" .. index, g.label.size, { bold = true, color = fg, align = "left" })
+    Draw.text(bb, g.label.x, g.label.cy, I18n.player(index), g.label.size, { bold = true, color = fg, align = "left" })
 
     Draw.border_round(bb, g.strip, g.strip.width, fg, g.strip.radius)
     local i = g.icon

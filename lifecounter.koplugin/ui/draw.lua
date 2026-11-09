@@ -155,4 +155,82 @@ function Draw.skull(bb, cx, cy, s, fg, bg)
     end
 end
 
+-- Pinta (w x h) em (x0, y0) pixel a pixel: fn(u, v) devolve a cor no ponto (u, v) em [0,1)x[0,1)
+-- (centro do pixel) ou nil para deixar como esta. Junta pixels vizinhos da mesma cor numa faixa.
+function Draw.raster(bb, x0, y0, w, h, fn)
+    x0, y0, w, h = math.floor(x0 + 0.5), math.floor(y0 + 0.5), math.floor(w + 0.5), math.floor(h + 0.5)
+    for py = 0, h - 1 do
+        local v = (py + 0.5) / h
+        local run_x, run_c = 0, nil
+        for px = 0, w do
+            local c = px < w and fn((px + 0.5) / w, v) or nil
+            if c ~= run_c then
+                if run_c then bb:paintRect(x0 + run_x, y0 + py, px - run_x, 1, run_c) end
+                run_x, run_c = px, c
+            end
+        end
+    end
+end
+
+-- Bandeiras em tons de cinza (o e-ink nao tem cor), so com retangulos.
+local function gray(v) return Blitbuffer.Color8(v) end
+local UK_BLUE, UK_RED, FLAG_WHITE = gray(0x70), BLACK, Blitbuffer.COLOR_WHITE
+local BR_GREEN, BR_YELLOW, BR_BLUE = gray(0x80), gray(0xD8), gray(0x30)
+
+-- Union Jack (2:1): campo azul, aspas brancas com as vermelhas deslocadas (contratrocadas),
+-- cruz branca larga e cruz vermelha de Sao Jorge. Medidas oficiais em 60 x 30.
+local DIAG = math.sqrt(60 * 60 + 30 * 30)
+local function uk(u, v)
+    local x, y = u * 60, v * 30
+    local dx, dy = math.abs(x - 30), math.abs(y - 15)
+    if dx < 3 or dy < 3 then return UK_RED end
+    if dx < 5 or dy < 5 then return FLAG_WHITE end
+    local s1 = (x * 30 - y * 60) / DIAG          -- > 0: acima da diagonal principal
+    local s2 = (x * 30 + y * 60 - 1800) / DIAG   -- > 0: abaixo da outra diagonal
+    local left = x < 30
+    if (left and s1 > -2 and s1 < 0) or (not left and s1 > 0 and s1 < 2)
+        or (not left and s2 > -2 and s2 < 0) or (left and s2 > 0 and s2 < 2) then
+        return UK_RED
+    end
+    if math.abs(s1) < 3 or math.abs(s2) < 3 then return FLAG_WHITE end
+    return UK_BLUE
+end
+
+-- Bandeira do Brasil (10:7), em modulos 20 x 14: campo verde, losango amarelo, circulo azul
+-- e a faixa branca (arco de um circulo maior com centro abaixo e a esquerda).
+local function br(u, v)
+    local x, y = u * 20, v * 14
+    local cx, cy = 10, 7
+    local ddx, ddy = x - cx, y - cy
+    if ddx * ddx + ddy * ddy <= 3.5 * 3.5 then
+        local bx, by = x - (cx - 2), y - (cy + 12)
+        local d = math.sqrt(bx * bx + by * by)
+        if d >= 11.6 and d <= 12.3 then return FLAG_WHITE end
+        return BR_BLUE
+    end
+    if math.abs(ddx) / 8.3 + math.abs(ddy) / 5.3 <= 1 then return BR_YELLOW end
+    return BR_GREEN
+end
+
+local FLAGS = { en = { fn = uk, ratio = 2 }, pt = { fn = br, ratio = 10 / 7 } }
+
+function Draw.flag_ratio(lang) return FLAGS[lang].ratio end
+
+-- Bandeira de altura h centrada em (cx, cy), com um filete preto em volta.
+function Draw.flag(bb, lang, cx, cy, h)
+    local f = FLAGS[lang]
+    local w = math.floor(h * f.ratio + 0.5)
+    local x, y = math.floor(cx - w / 2 + 0.5), math.floor(cy - h / 2 + 0.5)
+    Draw.raster(bb, x, y, w, h, f.fn)
+    bb:paintBorder(x - 2, y - 2, w + 4, h + 4, 2, BLACK)
+end
+
+-- Cabe numa linha (largura max_w) no tamanho dado?
+function Draw.fits(text, max_w, size, bold)
+    local tw = TextWidget:new{ text = text, face = Font:getFace("cfont", size), bold = bold, fgcolor = BLACK }
+    local ok = tw:getSize().w <= max_w
+    tw:free()
+    return ok
+end
+
 return Draw

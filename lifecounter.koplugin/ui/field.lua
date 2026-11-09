@@ -11,6 +11,7 @@ local Actions = require("core.actions")
 local Layout = require("core.layout")
 local View = require("core.field_view")
 local Draw = require("ui/draw")
+local I18n = require("core.i18n")
 local Guard = require("core.input_guard")
 local Tuning = require("core.tuning")
 local socket = require("socket")
@@ -70,7 +71,7 @@ function Field:onHoldRelease()
     return true
 end
 
--- Miniatura da mesa no cabecalho: o quadrado do oponente em preto, o do dono marcado "você".
+-- Miniatura da mesa no cabecalho: o quadrado do oponente em preto, o do dono marcado "you"/"você".
 function Field:_mini(bb)
     local l, k = self.layout, self.layout.k
     local m = l.mini
@@ -85,13 +86,13 @@ function Field:_mini(bb)
         local size = math.min(30 * k, r.h * 0.45, r.w * 0.28)
         if c.index == self.field.source then
             Draw.fill_round(bb, r, BLACK, radius)
-            Draw.text(bb, cx, cy, "J" .. c.index, size * 1.2, { bold = true, color = WHITE })
+            Draw.text(bb, cx, cy, I18n.player(c.index), size * 1.2, { bold = true, color = WHITE })
         elseif c.index == self.owner then
             Draw.border_round(bb, r, math.max(3, math.floor(6 * k + 0.5)), BLACK, radius)
-            Draw.text(bb, cx, cy, "você", size, { bold = true })
+            Draw.text(bb, cx, cy, I18n.t("you"), size, { bold = true })
         else
             Draw.border_round(bb, r, math.max(1, math.floor(2 * k + 0.5)), BLACK, radius)
-            Draw.text(bb, cx, cy, "J" .. c.index, size)
+            Draw.text(bb, cx, cy, I18n.player(c.index), size)
         end
     end
 end
@@ -103,8 +104,7 @@ function Field:_render_upright()
     bb:fill(WHITE)
     local t = l.title
     Draw.text(bb, l.w / 2, t.cy, View.title(self.owner, self.field), t.size, { bold = true })
-    local sub = self.field.kind == "poison" and "toque ±1" or "toque ±1 · segurar ±10"
-    Draw.text(bb, l.w / 2, t.sub_cy, sub, t.sub_size)
+    Draw.text(bb, l.w / 2, t.sub_cy, View.hint(self.field), t.sub_size)
     self:_mini(bb)
 
     local f = l.field
@@ -118,12 +118,12 @@ function Field:_render_upright()
     local px = Draw.fit_px(#v > 1 and v or "00", f.w - 2 * (gdx + gs), f.h * 0.6, true)
     Draw.text(bb, l.w / 2, cy, v, px, { bold = true })
     local note = View.reminder(self.field)
-    if self.game:status(self.owner) then note = note .. " · J" .. self.owner .. " está fora" end
+    if self.game:status(self.owner) then note = note .. " · " .. View.out_note(self.owner) end
     Draw.text(bb, l.w / 2, f.y + f.h - 80 * k, note, 44 * k, { bold = self.game:status(self.owner) ~= nil })
 
     local b = l.button
     Draw.fill_round(bb, b, BLACK, math.floor(26 * k))
-    Draw.text(bb, b.x + b.w / 2, b.y + b.h / 2, "OK · voltar ao jogo", 56 * k, { bold = true, color = WHITE })
+    Draw.text(bb, b.x + b.w / 2, b.y + b.h / 2, I18n.t("field_ok"), 56 * k, { bold = true, color = WHITE })
     return bb
 end
 
