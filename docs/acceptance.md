@@ -23,7 +23,9 @@ Marque cada item depois de testar no aparelho.
 - [ ] "MENU" na barra central abre o menu.
 
 ## Continuidade
-- [ ] Fechar o KOReader e abrir de novo: "Continuar partida" mostra os mesmos números.
+- [ ] "Fechar" (tela inicial ou menu da partida) sai do KOReader e volta à tela inicial do Kindle; o atalho
+  "Contador MTG" da biblioteca abre de novo e "Continuar partida" mostra os mesmos números.
+- [ ] "Abrir o KOReader" fecha só o contador e fica no KOReader.
 - [ ] Deixar o Kindle dormir e acordar no meio da partida: números mantidos.
 - [ ] Menu (barra central): "Nova partida" e "Reiniciar partida" pedem confirmação.
 - [ ] Sem Wi-Fi o jogo funciona normalmente.

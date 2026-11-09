@@ -10,6 +10,7 @@ local Game = require("core.game")
 local KeepAwake = require("core.keep_awake")
 local Tuning = require("core.tuning")
 local socket = require("socket")
+local Menus = require("core.menus")
 local Messages = require("core.update_messages")
 local RollbackNotice = require("core.rollback_notice")
 local Store = require("core.store")
@@ -22,6 +23,16 @@ local function info(text) UIManager:show(InfoMessage:new{ text = text }) end
 local function show_menu(title, items)
     local MenuScreen = require("ui/menu_screen")
     UIManager:show(MenuScreen:new{ title = title, items = items }, "ui")
+end
+
+-- Junta os itens de core/menus (texto + id) com as acoes do app (callback, stay) pelo id.
+local function with_actions(items, actions)
+    local out = {}
+    for i, it in ipairs(items) do
+        local a = actions[it.id] or {}
+        out[i] = { text = it.text, callback = a.callback, stay = a.stay }
+    end
+    return out
 end
 
 local function exit_koreader()
@@ -89,9 +100,9 @@ show_board = function(plugin, store, game)
     board = Board:new{
         game = game, store = store, on_activity = activity,
         on_menu = function()
-            show_menu("Menu", {
-                { text = "Voltar ao jogo" },
-                { text = "Reiniciar partida", stay = true, callback = function(menu)
+            show_menu("Menu", with_actions(Menus.game(), {
+                back = {},
+                restart = { stay = true, callback = function(menu)
                     UIManager:show(ConfirmBox:new{
                         text = "Reiniciar a partida? Vida, veneno e dano de comandante voltam ao inicio.",
                         ok_text = "Reiniciar",
@@ -104,15 +115,15 @@ show_board = function(plugin, store, game)
                         end,
                     })
                 end },
-                { text = "Nova partida", stay = true, callback = function(menu)
+                new = { stay = true, callback = function(menu)
                     new_game(plugin, store, true, menu, close_board)
                 end },
-                { text = "Sair para o KOReader", callback = close_board },
-                { text = "Sair do KOReader", callback = function()
+                koreader = { callback = close_board },
+                exit = { callback = function()
                     close_board()
                     exit_koreader()
                 end },
-            })
+            }))
         end,
         -- Toque num quadradinho de oponente ou na gota: campo unico virado para o dono do painel.
         on_open = function(owner, rotation, field)
@@ -223,16 +234,13 @@ end
 
 show_start = function(plugin, store)
     local saved = load_saved(store)
-    local items = {}
-    if saved then
-        items[#items + 1] = { text = "Continuar partida", callback = function() show_board(plugin, store, saved) end }
-    end
-    items[#items + 1] = { text = "Nova partida", stay = true, callback = function(menu)
-        new_game(plugin, store, saved ~= nil, menu)
-    end }
-    items[#items + 1] = { text = "Atualizar", stay = true, callback = function() update(plugin) end }
-    items[#items + 1] = { text = "Fechar" }
-    items[#items + 1] = { text = "Sair do KOReader", callback = exit_koreader }
+    local items = with_actions(Menus.start(saved ~= nil), {
+        continue = { callback = function() show_board(plugin, store, saved) end },
+        new = { stay = true, callback = function(menu) new_game(plugin, store, saved ~= nil, menu) end },
+        update = { stay = true, callback = function() update(plugin) end },
+        koreader = {},
+        exit = { callback = exit_koreader },
+    })
     show_menu("Contador MTG  (v" .. version_of(plugin) .. ")", items)
 end
 
