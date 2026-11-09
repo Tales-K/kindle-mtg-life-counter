@@ -8,13 +8,16 @@ Marque cada item depois de testar no aparelho.
 ## Jogo
 - [ ] Nova partida com 2 jogadores, 40 de vida: os dois painéis aparecem, um de cabeça para baixo.
 - [ ] Nova partida com 4 e com 6 jogadores: todos os painéis legíveis; numeração J1..Jn no sentido horário a partir do canto inferior esquerdo.
-- [ ] Toque em + e − muda 1; segurar muda 10; os dois funcionam também no painel de cabeça para baixo.
-- [ ] Veneno: + e − mudam o número; em 10 o painel mostra "FORA: veneno".
-- [ ] Vida em 0 ou menos mostra "FORA: vida" e os controles continuam funcionando.
-- [ ] "Comandante" abre a tela de dano; somar dano tira a mesma vida do jogador; 21 de um mesmo oponente mostra "LETAL" e o painel "FORA: comandante".
-- [ ] Na tela de comandante aberta pelo painel de cima, ela aparece de cabeça para baixo e legível para quem está lá.
-- [ ] Toque duplo rápido em "Comandante" não altera o dano nem a vida.
-- [ ] "Voltar" fecha a tela de comandante e o jogo mostra os números novos.
+- [ ] Toque na metade esquerda do painel tira 1 e na direita soma 1; segurar muda 10; vale também no painel de cabeça para baixo (as metades seguem quem está sentado ali).
+- [ ] Veneno aparece no canto (gota + número) só quando não é zero.
+- [ ] Vida em 0 ou menos, veneno 10 ou 21 de um mesmo comandante: painel preto com caveira, sem texto de motivo, e os controles continuam funcionando.
+- [ ] A miniatura da mesa embaixo do painel mostra o dano recebido de cada oponente no lugar dele; tocar nela abre a tela de dano sem mudar nada.
+- [ ] Tela de dano: metade esquerda/direita do quadrado de um oponente tira/soma 1 (segurar 10); somar dano tira a mesma vida do jogador; o quadrado "VOCÊ" não reage.
+- [ ] Tela de dano aberta pelo painel de cima: a faixa do meio (Voltar e veneno) aparece virada para quem está lá.
+- [ ] Veneno − e + na faixa do meio mudam 1.
+- [ ] Toque duplo rápido na miniatura não altera o dano nem a vida.
+- [ ] "Voltar" fecha a tela de dano e o jogo mostra os números novos.
+- [ ] "MENU" na barra central abre o menu.
 
 ## Continuidade
 - [ ] Fechar o KOReader e abrir de novo: "Continuar partida" mostra os mesmos números.

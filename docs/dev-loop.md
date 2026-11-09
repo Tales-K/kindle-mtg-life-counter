@@ -22,6 +22,23 @@ DISPLAY=:1 xwininfo -root -tree | grep -i koreader     # achar o id da janela
 python3 tools/screenshot.py saida.png :1 <ID_DA_JANELA>
 ```
 
+- Se a tela do PC tiver menos de 1448 px de altura, a janela fica cortada. Nesse caso, rode dentro de
+  um Xephyr do tamanho do Kindle e capture a raiz dele:
+
+```bash
+Xephyr :5 -screen 1072x1448 -no-host-grab &
+cd <koreader-emu>/app && KOREADER_WINDOW_POS_X=0 KOREADER_WINDOW_POS_Y=0 DISPLAY=:5 \
+  LIFECOUNTER_AUTOSTART=1 EMULATE_READER_W=1072 EMULATE_READER_H=1448 ./bin/koreader
+xwd -root -display :5 -silent > tela.xwd   # ou tools/screenshot.py trocando -id por -root
+```
+
+- Ganchos de demonstração (só desenvolvimento, em `app.lua`):
+  - `LIFECOUNTER_DEMO=<n>` abre direto uma partida de n jogadores com dano de comandante de 2 oponentes
+    em J1, veneno, J2 fora por 21 de comandante e J6 fora por vida.
+  - `LIFECOUNTER_DEMO_COMMANDER=<alvo>` (junto com o anterior) abre a tela de dano do alvo e simula
+    toques: 2× + no 1º oponente, segurar + no 2º e veneno +. A faixa do meio gira sozinha se o alvo
+    está na fileira de cima.
+  - `LIFECOUNTER_SIM_TAPS="x:y:segundos,..."` simula toques na tela.
 - Os logs do emulador saem no terminal que o iniciou. Para recarregar o código depois de editar, feche e abra o emulador.
 
 ## Kindle

@@ -8,10 +8,10 @@ painel virado para o seu lado. Inspirado no LifeTap.
 
 <p align="center">
   <img src="docs/img/seis-jogadores.png" width="270" alt="Partida com 6 jogadores">
-  <img src="docs/img/dois-jogadores.png" width="270" alt="Partida com 2 jogadores, dano de comandante">
+  <img src="docs/img/dois-jogadores.png" width="270" alt="Partida com 2 jogadores, um fora por dano de comandante">
 </p>
 
-> O visual está sendo redesenhado; as imagens acima mostram a versão atual, ainda crua.
+> Capturas do emulador do KOReader no tamanho da tela do Kindle (1072 × 1448).
 
 ## Recursos
 
