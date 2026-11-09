@@ -21,7 +21,7 @@ local function info(text) UIManager:show(InfoMessage:new{ text = text }) end
 -- Menu em tela cheia e modal (um ButtonDialog comum ficaria ESCONDIDO atras da tela de jogo, que e modal).
 local function show_menu(title, items)
     local MenuScreen = require("ui/menu_screen")
-    UIManager:show(MenuScreen:new{ title = title, items = items })
+    UIManager:show(MenuScreen:new{ title = title, items = items }, "ui")
 end
 
 local function exit_koreader()
@@ -77,7 +77,7 @@ show_board = function(plugin, store, game)
     UIManager:preventStandby()
     local board
     local function close_board()
-        UIManager:close(board)
+        UIManager:close(board, "ui")
         if current_board == board then
             current_board = nil
             UIManager:unschedule(keep_tick)
@@ -118,12 +118,12 @@ show_board = function(plugin, store, game)
             local view
             view = Commander:new{
                 game = game, store = store, target = i, on_activity = activity,
-                on_close = function() UIManager:close(view); board:rearm() end,
+                on_close = function() UIManager:close(view, "ui"); board:rearm() end,
             }
-            UIManager:show(view)
+            UIManager:show(view, "ui")
         end,
     }
-    UIManager:show(board)
+    UIManager:show(board, "full")
     current_board = board
     activity()
     UIManager:unschedule(keep_tick)

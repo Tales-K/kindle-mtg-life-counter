@@ -17,7 +17,7 @@ local Screen = Device.screen
 
 local BLACK, WHITE = Blitbuffer.COLOR_BLACK, Blitbuffer.COLOR_WHITE
 
-local Commander = InputContainer:extend{ modal = true, name = "lifecounter_commander" }
+local Commander = InputContainer:extend{ modal = true, covers_fullscreen = true, name = "lifecounter_commander" }
 
 function Commander:init()
     local w, h = Screen:getWidth(), Screen:getHeight()

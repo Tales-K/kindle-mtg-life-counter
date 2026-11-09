@@ -13,7 +13,7 @@ local Tuning = require("core.tuning")
 local socket = require("socket")
 local Screen = Device.screen
 
-local MenuScreen = InputContainer:extend{ modal = true, name = "lifecounter_menu" }
+local MenuScreen = InputContainer:extend{ modal = true, covers_fullscreen = true, name = "lifecounter_menu" }
 
 -- items = { { text = "...", callback = function(menu) end, stay = false }, ... }
 -- Depois do callback o menu se fecha, a nao ser que o item tenha stay = true
@@ -28,7 +28,7 @@ function MenuScreen:init()
 end
 
 function MenuScreen:close()
-    UIManager:close(self)
+    UIManager:close(self, "ui")
 end
 
 function MenuScreen:onTap(_, ges)

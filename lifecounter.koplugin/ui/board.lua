@@ -14,7 +14,7 @@ local Tuning = require("core.tuning")
 local socket = require("socket")
 local Screen = Device.screen
 
-local Board = InputContainer:extend{ modal = true, name = "lifecounter_board" }
+local Board = InputContainer:extend{ modal = true, covers_fullscreen = true, name = "lifecounter_board" }
 
 function Board:init()
     local w, h = Screen:getWidth(), Screen:getHeight()
