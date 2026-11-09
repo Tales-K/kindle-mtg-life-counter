@@ -9,6 +9,7 @@ painel virado para o seu lado. Inspirado no LifeTap.
 <p align="center">
   <img src="docs/img/seis-jogadores.png" width="270" alt="Partida com 6 jogadores">
   <img src="docs/img/dois-jogadores.png" width="270" alt="Partida com 2 jogadores, um fora por dano de comandante">
+  <img src="docs/img/campo-dano.png" width="270" alt="Campo de dano de comandante de J4 em J1">
 </p>
 
 > Capturas do emulador do KOReader no tamanho da tela do Kindle (1072 × 1448).
@@ -17,8 +18,14 @@ painel virado para o seu lado. Inspirado no LifeTap.
 
 - **2 a 6 jogadores**, com os painéis girados para cada lado da mesa.
 - **Toque** soma ou subtrai 1; **segurar** soma ou subtrai 10.
-- **Veneno** por jogador.
-- **Dano de comandante** separado por oponente.
+- **Veneno** por jogador: a gota com o número fica sempre à vista embaixo do painel; tocar nela
+  abre o campo de veneno (só toque, ±1).
+- **Dano de comandante** separado por oponente: embaixo de cada painel, uma miniatura da mesa mostra
+  o dano recebido de cada oponente no lugar dele. Tocar no quadradinho de um oponente abre um campo
+  em tela cheia, virado para o dono do painel, só com aquele número (toque ±1, segurar ±10).
+  O dano tira a mesma vida, e devolver dano devolve a vida.
+- **Jogador fora** (vida 0, veneno 10 ou 21 de um mesmo comandante) vira painel preto com caveira,
+  e volta ao jogo sozinho se o número for corrigido.
 - **Partida salva a cada toque**: fechar o KOReader ou acabar a bateria não perde o jogo
   ("Continuar partida" no menu).
 - **Atualização pelo ar** com o botão "Atualizar" do menu:

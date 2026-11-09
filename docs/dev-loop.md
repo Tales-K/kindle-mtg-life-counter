@@ -35,9 +35,11 @@ xwd -root -display :5 -silent > tela.xwd   # ou tools/screenshot.py trocando -id
 - Ganchos de demonstração (só desenvolvimento, em `app.lua`):
   - `LIFECOUNTER_DEMO=<n>` abre direto uma partida de n jogadores com dano de comandante de 2 oponentes
     em J1, veneno, J2 fora por 21 de comandante e J6 fora por vida.
-  - `LIFECOUNTER_DEMO_COMMANDER=<alvo>` (junto com o anterior) abre a tela de dano do alvo e simula
-    toques: 2× + no 1º oponente, segurar + no 2º e veneno +. A faixa do meio gira sozinha se o alvo
-    está na fileira de cima.
+  - `LIFECOUNTER_DEMO_COMMANDER=<dono>:<oponente>[:<toques>]` (junto com o anterior) toca, como um
+    jogador, no quadradinho do oponente na miniatura do painel do dono e depois simula toques no campo
+    único: `+`/`-` tocar, `H`/`h` segurar em +/−, `o` OK (padrão `++H`). Com `v` no lugar do oponente
+    (`1:v`) abre o campo de veneno. O campo gira sozinho se o dono está na fileira de cima.
+    Ex.: `4` + `2:1:-o` revive J2 (21 → 20 de J1) e volta ao jogo.
   - `LIFECOUNTER_SIM_TAPS="x:y:segundos,..."` simula toques na tela.
 - Os logs do emulador saem no terminal que o iniciou. Para recarregar o código depois de editar, feche e abra o emulador.
 
