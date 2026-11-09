@@ -1,0 +1,5 @@
+release/
+lifecounter.koplugin/config.lua
+worker/node_modules/
+.superpowers/
+worker/.wrangler/

@@ -1,0 +1,11 @@
+# Worker que serve as atualizacoes do plugin (<nome>.<sua-conta>.workers.dev).
+name = "kindle-life"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "../release"
+binding = "ASSETS"
+run_worker_first = true
