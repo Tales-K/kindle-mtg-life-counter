@@ -16,7 +16,7 @@ local function setup()
         docs = d .. "/documents",
         marker = d .. "/settings/lifecounter_shortcut",
     }
-    Fs.write(o.src, "#!/bin/sh\n# Name: Contador MTG\n")
+    Fs.write(o.src, "#!/bin/sh\n# Name: Cryo MTG Life Counter\n")
     Fs.write(o.docs .. "/.keep", "")
     return o
 end
@@ -24,7 +24,7 @@ end
 H.test("shortcut: copies the scriptlet into documents the first time", function()
     local o = setup()
     H.eq(Shortcut.install(Fs, o.src, o.docs, o.marker), "installed")
-    H.eq(Fs.read(o.docs .. "/contador-mtg.sh"), "#!/bin/sh\n# Name: Contador MTG\n")
+    H.eq(Fs.read(o.docs .. "/contador-mtg.sh"), "#!/bin/sh\n# Name: Cryo MTG Life Counter\n")
 end)
 
 H.test("shortcut: does not come back after the owner deletes it", function()
@@ -38,9 +38,9 @@ end)
 H.test("shortcut: a newer scriptlet replaces the installed copy if it is still there", function()
     local o = setup()
     Shortcut.install(Fs, o.src, o.docs, o.marker)
-    Fs.write(o.src, "#!/bin/sh\n# Name: Contador MTG\n# v2\n")
+    Fs.write(o.src, "#!/bin/sh\n# Name: Cryo MTG Life Counter\n# v2\n")
     H.eq(Shortcut.install(Fs, o.src, o.docs, o.marker), "updated")
-    H.eq(Fs.read(o.docs .. "/contador-mtg.sh"), "#!/bin/sh\n# Name: Contador MTG\n# v2\n")
+    H.eq(Fs.read(o.docs .. "/contador-mtg.sh"), "#!/bin/sh\n# Name: Cryo MTG Life Counter\n# v2\n")
 end)
 
 H.test("shortcut: nothing to do without a documents folder (not a Kindle)", function()

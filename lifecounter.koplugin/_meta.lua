@@ -1,5 +1,5 @@
 return {
     name = "lifecounter",
-    fullname = "Contador de vidas MTG",
-    description = [[Contador de vidas de Magic (Commander) para 2 a 6 jogadores.]],
+    fullname = "Cryo MTG Life Counter",
+    description = [[Life counter for Magic: The Gathering (Commander), 2 to 6 players. English or Portuguese.]],
 }

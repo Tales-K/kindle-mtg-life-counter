@@ -1,9 +1,15 @@
 # Aceitação no Kindle
 
 Plugin instalado em `koreader/plugins/lifecounter.koplugin` (com `config.lua` apontando para
-`https://<nome>.<sua-conta>.workers.dev/v1/`). Abrir: KOReader → menu de cima → Mais ferramentas → **Contador MTG**.
+`https://<nome>.<sua-conta>.workers.dev/v1/`). Abrir: KOReader → menu de cima → Mais ferramentas → **Cryo MTG Life Counter**.
 
 Marque cada item depois de testar no aparelho.
+
+## Idioma
+- [ ] Instalação nova (sem `lifecounter_lang`): tudo em inglês, jogadores P1..P6, título "Cryo MTG Life Counter (vN)".
+- [ ] Tela inicial: botão com as bandeiras do Reino Unido ("English") e do Brasil ("Português"); a ativa tem borda grossa e nome em negrito.
+- [ ] Tocar na bandeira do Brasil muda na hora para português (J1..J6, "dano de comandante de J4"); fechar e abrir de novo mantém o português.
+- [ ] Tocar na bandeira já ativa não faz nada.
 
 ## Jogo
 - [ ] Nova partida com 2 jogadores, 40 de vida: os dois painéis aparecem, um de cabeça para baixo.
@@ -23,8 +29,9 @@ Marque cada item depois de testar no aparelho.
 - [ ] "MENU" na barra central abre o menu.
 
 ## Continuidade
-- [ ] "Fechar" (tela inicial ou menu da partida) sai do KOReader e volta à tela inicial do Kindle; o atalho
-  "Contador MTG" da biblioteca abre de novo e "Continuar partida" mostra os mesmos números.
+- [ ] "Sair" / "Exit" (tela inicial ou menu da partida) sai do KOReader e volta à tela inicial do Kindle; o atalho
+  "Cryo MTG Life Counter" da biblioteca (capa "CRYO" com floco de neve) abre de novo e "Continuar partida" mostra os mesmos números.
+- [ ] "Voltar ao menu principal" (menu da partida) mostra a tela inicial; "Continuar partida" volta à mesma partida.
 - [ ] "Abrir o KOReader" fecha só o contador e fica no KOReader.
 - [ ] Deixar o Kindle dormir e acordar no meio da partida: números mantidos.
 - [ ] Menu (barra central): "Nova partida" e "Reiniciar partida" pedem confirmação.

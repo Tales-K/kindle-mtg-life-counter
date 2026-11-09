@@ -33,7 +33,7 @@ end
 
 function LifeCounter:onDispatcherRegisterActions()
     Dispatcher:registerAction("lifecounter_open", {
-        category = "none", event = "LifeCounterOpen", title = "Contador MTG", general = true,
+        category = "none", event = "LifeCounterOpen", title = "Cryo MTG Life Counter", general = true,
     })
 end
 
@@ -95,7 +95,7 @@ end
 
 function LifeCounter:addToMainMenu(menu_items)
     menu_items.lifecounter = {
-        text = "Contador MTG",
+        text = "Cryo MTG Life Counter",
         sorting_hint = "more_tools",
         callback = function() self:open() end,
     }
@@ -112,7 +112,7 @@ function LifeCounter:open()
     end)
     if not ok then
         logger.err("lifecounter: falha ao abrir o app:", err)
-        UIManager:show(InfoMessage:new{ text = "Contador MTG: erro ao abrir.\n" .. tostring(err) })
+        UIManager:show(InfoMessage:new{ text = "Cryo MTG Life Counter: failed to open / erro ao abrir.\n" .. tostring(err) })
     end
 end
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension>
 	<information>
-		<name>Contador MTG</name>
+		<name>Cryo MTG Life Counter</name>
 		<version>1.0</version>
 		<author>Tales-K</author>
 		<id>lifecounter</id>

@@ -1,7 +1,7 @@
 {
 	"items": [
 		{
-			"name": "Contador MTG",
+			"name": "Cryo MTG Life Counter",
 			"priority": 1,
 			"action": "./bin/launch.sh",
 			"exitmenu": true,

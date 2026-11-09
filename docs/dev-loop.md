@@ -41,12 +41,15 @@ xwd -root -display :5 -silent > tela.xwd   # ou tools/screenshot.py trocando -id
     (`1:v`) abre o campo de veneno. O campo gira sozinho se o dono está na fileira de cima.
     Ex.: `4` + `2:1:-o` revive J2 (21 → 20 de J1) e volta ao jogo.
   - `LIFECOUNTER_SIM_TAPS="x:y:segundos,..."` simula toques na tela.
+  - `LIFECOUNTER_LANG=en|pt` força o idioma sem gravar a escolha (sem ele vale o arquivo
+    `~/.config/koreader/settings/lifecounter_lang`; sem o arquivo, inglês). Em inglês os jogadores
+    são P1..P6 e os textos acima (J1, J2...) viram P1, P2...
 - Os logs do emulador saem no terminal que o iniciou. Para recarregar o código depois de editar, feche e abra o emulador.
 
 ## Kindle
 
 - Pelo USB (modo pendrive): `tools/push_to_kindle.sh --usb`, ejetar, e abrir o KOReader no Kindle.
-  Em "Mais ferramentas" fica "Contador MTG".
+  Em "Mais ferramentas" fica "Cryo MTG Life Counter".
 - Pelo SSH (mais rápido, sem cabo): ligar o SSH no KOReader (menu de rede) e usar
   `tools/push_to_kindle.sh --ssh usuario@IP porta`.
 - O script nunca mexe em `config.lua`, `version.txt` nem `pending.marker` no aparelho.

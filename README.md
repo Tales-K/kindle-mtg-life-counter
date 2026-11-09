@@ -1,6 +1,6 @@
-# Contador MTG para Kindle
+# Cryo MTG Life Counter para Kindle
 
-Contador de vidas de **Magic: The Gathering** (formato Commander) feito como plugin do
+**Cryo MTG Life Counter** é um contador de vidas de **Magic: The Gathering** (formato Commander) feito como plugin do
 [KOReader](https://github.com/koreader/koreader) para **Kindle com jailbreak**.
 
 A ideia é deixar o Kindle no meio da mesa, no lugar do celular, com cada jogador lendo o próprio
@@ -27,7 +27,13 @@ painel virado para o seu lado. Inspirado no LifeTap.
 - **Jogador fora** (vida 0, veneno 10 ou 21 de um mesmo comandante) vira painel preto com caveira,
   e volta ao jogo sozinho se o número for corrigido.
 - **Partida salva a cada toque**: fechar o KOReader ou acabar a bateria não perde o jogo
-  ("Continuar partida" no menu).
+  ("Continue game" / "Continuar partida" na tela inicial). "Back to main menu" / "Voltar ao menu
+  principal", no menu da partida, volta à tela inicial sem apagar nada.
+- **Inglês ou português** (padrão inglês): na tela inicial, toque na bandeira do Reino Unido ou do
+  Brasil. A escolha fica gravada em `lifecounter_lang`, na pasta de configurações do KOReader.
+  Em inglês os jogadores são P1..P6; em português, J1..J6.
+- **"Exit" / "Sair"** fecha o KOReader e volta à tela inicial do Kindle; "Open KOReader" / "Abrir o
+  KOReader" fecha só o contador.
 - **Atualização pelo ar** com o botão "Atualizar" do menu:
   - os arquivos vêm de um Cloudflare Worker próprio, que só responde com o token certo;
   - cada arquivo é conferido por SHA-256 contra o manifesto antes de trocar qualquer coisa;
@@ -51,17 +57,17 @@ Requisitos: Kindle com jailbreak e KOReader instalado.
    `kual/lifecounter` para lá. O script nunca envia nem apaga `config.lua`, `version.txt`
    e `pending.marker` do aparelho.
 
-2. Abra o KOReader. O app fica em **Mais ferramentas → Contador MTG**.
+2. Abra o KOReader. O app fica em **Mais ferramentas → Cryo MTG Life Counter**.
 
 Atalhos opcionais:
 
 - **Biblioteca do Kindle**: com o Universal Hotfix (suporte a *scriptlets*), o plugin copia
   `shortcut/contador-mtg.sh` para `documents/` na primeira abertura. Ele aparece na biblioteca
-  como um livro com capa própria, e tocar nele abre o KOReader já no contador. Se você apagar o
+  como um livro com capa própria ("CRYO" com um floco de neve), e tocar nele abre o KOReader já no contador. Se você apagar o
   atalho, ele não volta. A capa e o script são gerados por `tools/make_shortcut.py`.
 - **KUAL**: a entrada `kual/lifecounter` (copiada para `extensions/lifecounter`) abre o KOReader já
   dentro do contador.
-- **Gesto**: em Configurações → Toques e gestos, associe um gesto à ação **"Contador MTG"**.
+- **Gesto**: em Configurações → Toques e gestos, associe um gesto à ação **"Cryo MTG Life Counter"**.
 
 Mais detalhes em [docs/dev-loop.md](docs/dev-loop.md).
 
