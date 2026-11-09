@@ -34,4 +34,26 @@ function Actions.apply_commander(game, store, target, source, sign, big)
     return true
 end
 
+-- Toque/segurar num painel da tela de jogo. Devolve "changed" (vida mudou e foi gravada),
+-- "open" (toque na miniatura: abrir a tela de dano, sem mudar nada) ou nil.
+function Actions.on_panel(game, store, index, zone, big)
+    if zone == "mini" then return (not big) and "open" or nil end
+    if zone ~= "plus" and zone ~= "minus" then return nil end
+    return Actions.apply(game, store, index, zone, big) and "changed" or nil
+end
+
+-- Toque/segurar na tela de dano (hit de commander_view). Dano: +-1 ou +-10 (tambem mexe na vida).
+-- Veneno: so o toque, +-1. Devolve true se mudou algo.
+function Actions.on_commander(game, store, target, hit, big)
+    if not hit then return false end
+    local a = hit.action
+    if a == "plus" or a == "minus" then
+        return Actions.apply_commander(game, store, target, hit.source, a == "plus" and 1 or -1, big)
+    end
+    if (a == "poison_plus" or a == "poison_minus") and not big then
+        return Actions.apply(game, store, target, a, false)
+    end
+    return false
+end
+
 return Actions

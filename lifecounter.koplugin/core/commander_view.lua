@@ -1,56 +1,62 @@
 -- Parte pura da tela de dano de comandante (sem KOReader), para poder testar no PC.
-local Game = require("core.game")
+-- A tela e a mesa em tamanho grande: um quadrado por jogador no lugar dele (fileira de cima
+-- girada 180) e uma faixa no meio, virada para o jogador alvo, com "Voltar" e o veneno.
+local Layout = require("core.layout")
 
 local View = {}
 
-function View.rows(game, target)
-    local rows = {}
-    local cmd = game.players[target].cmd
-    for source = 1, game.player_count do
-        if source ~= target then
-            local damage = cmd[source] or 0
-            rows[#rows + 1] = { source = source, damage = damage, lethal = damage >= Game.COMMANDER_LETHAL }
-        end
-    end
-    return rows
+local BAND_RATIO = 330 / 1448 -- proporcao do mockup A2
+
+local function rnd(v) return math.floor(v + 0.5) end
+
+function View.layout(n, target, w, h)
+    local cells = Layout.seats(n, w, h, math.floor(h * BAND_RATIO))
+    local rh = cells[1].h
+    local rotation = 0
+    for _, c in ipairs(cells) do if c.index == target then rotation = c.rotation end end
+    local band = { x = 0, y = rh, w = w, h = h - 2 * rh, rotation = rotation }
+    local kx, ky = w / 1072, band.h / 330
+    local py, pb = rnd(182 * ky), rnd(18 * ky)
+    local controls = {
+        back = { x = rnd(24 * kx), y = rnd(20 * ky), w = rnd(266 * kx), h = rnd(126 * ky) },
+        poison_minus = { x = rnd(420 * kx), y = py, w = rnd(180 * kx), h = band.h - pb - py },
+        poison_plus = { x = rnd(860 * kx), y = py, w = w - rnd(24 * kx) - rnd(860 * kx), h = band.h - pb - py },
+    }
+    return { w = w, h = h, n = n, target = target, cells = cells, band = band, controls = controls, kx = kx, ky = ky }
 end
 
-function View.layout(count, w, h)
-    local header_h = math.floor(h * 0.12)
-    local back_h = math.floor(h * 0.12)
-    local row_h = math.floor((h - header_h - back_h) / count)
-    local a, b = math.floor(w * 0.25), math.floor(w * 0.75)
-    local layout = {
-        w = w, h = h,
-        header = { x = 0, y = 0, w = w, h = header_h },
-        rows = {},
-    }
-    for i = 1, count do
-        local y = header_h + (i - 1) * row_h
-        layout.rows[i] = {
-            minus = { x = 0, y = y, w = a, h = row_h },
-            value = { x = a, y = y, w = b - a, h = row_h },
-            plus = { x = b, y = y, w = w - b, h = row_h },
-        }
-    end
-    layout.back = { x = 0, y = h - back_h, w = w, h = back_h }
-    return layout
+-- Ponto (lx, ly) no quadro "em pe" de um retangulo com rotacao 0/180 -> ponto na tela (e vice-versa).
+function View.screen_point(r, rotation, lx, ly)
+    if rotation == 180 then return r.x + r.w - 1 - lx, r.y + r.h - 1 - ly end
+    return r.x + lx, r.y + ly
+end
+
+local function local_point(r, rotation, x, y)
+    local lx, ly = x - r.x, y - r.y
+    if rotation == 180 then lx, ly = r.w - 1 - lx, r.h - 1 - ly end
+    return lx, ly
 end
 
 local function inside(r, x, y)
     return x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
 end
 
--- rotation 180: o ponto da tela e girado de volta para o quadro "em pe".
-function View.hit(layout, x, y, rotation)
-    if rotation == 180 then
-        x, y = layout.w - 1 - x, layout.h - 1 - y
+-- Devolve { action = "minus"|"plus", source = i } num oponente, { action = "back"|"poison_minus"|
+-- "poison_plus" } na faixa, ou nil (quadrado do proprio alvo, vazios e fora da tela).
+function View.hit(l, x, y)
+    if inside(l.band, x, y) then
+        local lx, ly = local_point(l.band, l.band.rotation, x, y)
+        for _, name in ipairs({ "back", "poison_minus", "poison_plus" }) do
+            if inside(l.controls[name], lx, ly) then return { action = name } end
+        end
+        return nil
     end
-    if x < 0 or y < 0 or x >= layout.w or y >= layout.h then return nil end
-    if inside(layout.back, x, y) then return { action = "back" } end
-    for i, r in ipairs(layout.rows) do
-        if inside(r.minus, x, y) then return { row = i, action = "minus" } end
-        if inside(r.plus, x, y) then return { row = i, action = "plus" } end
+    for _, c in ipairs(l.cells) do
+        if inside(c, x, y) then
+            if c.index == l.target then return nil end
+            local lx = local_point(c, c.rotation, x, y)
+            return { action = lx < math.floor(c.w / 2) and "minus" or "plus", source = c.index }
+        end
     end
     return nil
 end
