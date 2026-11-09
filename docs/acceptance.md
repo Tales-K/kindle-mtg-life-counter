@@ -38,7 +38,7 @@ Marque cada item depois de testar no aparelho.
 - [ ] Sem Wi-Fi o jogo funciona normalmente.
 
 ## Atualização
-- [ ] "Atualizar" com Wi-Fi: mostra a versão disponível (ou "Ja esta na versao N") sem erro.
+- [ ] "Atualizar" com Wi-Fi: mostra a versão disponível (ou "Already on version N" / "Já está na versão N") sem erro.
 - [ ] Depois de instalar: reinicia o KOReader, a tela inicial mostra a versão nova e a partida salva continua.
 - [ ] Versão quebrada de propósito: o plugin volta sozinho para a anterior.
 
