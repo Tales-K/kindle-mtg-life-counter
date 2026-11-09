@@ -1,39 +1,70 @@
 local H = require("helper")
+local I18n = require("core.i18n")
 local M = require("core.update_messages")
 
+local function both(fn)
+    for _, lang in ipairs({ "pt", "en" }) do
+        I18n.set(lang)
+        fn(lang)
+    end
+    I18n.set("en")
+end
+
 H.test("describe maps 401 and 403 to token refused", function()
+    I18n.set("pt")
     H.eq(M.describe("401"), "Token recusado pelo servidor.")
     H.eq(M.describe("403"), "Token recusado pelo servidor.")
+    I18n.set("en")
+    H.eq(M.describe("401"), "The server refused the token.")
 end)
 
 H.test("describe maps network failures to no network", function()
     for _, e in ipairs({ "timeout", "connection refused", "host or service not provided, or not known", "closed" }) do
+        I18n.set("pt")
         H.eq(M.describe(e), "Sem rede ou servidor fora do ar.")
+        I18n.set("en")
+        H.eq(M.describe(e), "No network, or the server is down.")
     end
 end)
 
 H.test("describe maps certificate problems and mentions the clock", function()
+    I18n.set("pt")
     local msg = M.describe("certificate verify failed")
     H.eq(msg:find("certificado", 1, true) ~= nil, true)
     H.eq(msg:find("hora", 1, true) ~= nil, true)
+    I18n.set("en")
+    msg = M.describe("certificate verify failed")
+    H.eq(msg:find("certificate", 1, true) ~= nil, true)
+    H.eq(msg:find("clock", 1, true) ~= nil, true)
 end)
 
 H.test("describe maps hash and size mismatches to invalid file", function()
+    I18n.set("pt")
     H.eq(M.describe("hash mismatch core/game.lua"), "Arquivo da atualizacao invalido. Nada foi alterado.")
     H.eq(M.describe("size mismatch app.lua"), "Arquivo da atualizacao invalido. Nada foi alterado.")
+    I18n.set("en")
+    H.eq(M.describe("hash mismatch core/game.lua"), "Invalid update file. Nothing was changed.")
 end)
 
 H.test("describe maps bad manifest and bad paths to invalid update", function()
+    I18n.set("pt")
     H.eq(M.describe("bad path ../x"), "Atualizacao invalida. Nada foi alterado.")
     H.eq(M.describe("protected path main.lua"), "Atualizacao invalida. Nada foi alterado.")
     H.eq(M.describe("bad version"), "Atualizacao invalida. Nada foi alterado.")
+    I18n.set("en")
+    H.eq(M.describe("bad version"), "Invalid update. Nothing was changed.")
 end)
 
 H.test("describe maps a missing config to a setup hint", function()
+    I18n.set("pt")
     H.eq(M.describe("no config"), "Falta o arquivo config.lua com a URL e o token.")
+    I18n.set("en")
+    H.eq(M.describe("no config"), "Missing config.lua with the URL and the token.")
 end)
 
 H.test("describe falls back to the raw text and survives nil", function()
-    H.eq(M.describe("algo estranho"), "Falha: algo estranho")
-    H.eq(M.describe(nil), "Falha desconhecida.")
+    both(function(lang)
+        H.eq(M.describe("algo estranho"), (lang == "pt" and "Falha: " or "Error: ") .. "algo estranho")
+        H.eq(M.describe(nil), lang == "pt" and "Falha desconhecida." or "Unknown error.")
+    end)
 end)

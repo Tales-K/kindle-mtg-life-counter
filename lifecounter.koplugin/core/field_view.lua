@@ -3,6 +3,7 @@
 -- oponente, ou o veneno dele. Fica virado para o dono (a tela inteira gira 180 se ele esta em cima).
 -- De cima para baixo, "em pe": titulo, miniatura da mesa, numero com metades -/+, botao OK.
 local Game = require("core.game")
+local I18n = require("core.i18n")
 
 local View = {}
 
@@ -47,13 +48,22 @@ function View.hit(l, x, y)
 end
 
 function View.title(owner, field)
-    if field.kind == "poison" then return "J" .. owner .. " · veneno" end
-    return "J" .. owner .. " · dano de comandante de J" .. field.source
+    local p = I18n.player(owner)
+    if field.kind == "poison" then return I18n.t("field_poison", { player = p }) end
+    return I18n.t("field_commander", { player = p, source = I18n.player(field.source) })
 end
 
 function View.reminder(field)
-    if field.kind == "poison" then return "fora com " .. Game.POISON_LETHAL end
-    return "de " .. Game.COMMANDER_LETHAL
+    if field.kind == "poison" then return I18n.t("reminder_poison", { n = Game.POISON_LETHAL }) end
+    return I18n.t("reminder_commander", { n = Game.COMMANDER_LETHAL })
+end
+
+function View.hint(field)
+    return I18n.t(field.kind == "poison" and "hint_poison" or "hint_commander")
+end
+
+function View.out_note(owner)
+    return I18n.t("out_note", { player = I18n.player(owner) })
 end
 
 function View.value(game, owner, field)
