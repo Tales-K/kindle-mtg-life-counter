@@ -39,11 +39,13 @@ end
 local function demo_game(n)
     local g = Game.new(n, 40)
     local function set(i, f) if g.players[i] then f(g.players[i]) end end
-    set(2, function(p) p.life = -100 end)
-    set(3, function(p) p.life = 1000 end)
-    set(4, function(p) p.life = 7; p.poison = 9 end)
-    set(5, function(p) p.poison = 10 end)
-    set(6, function(p) p.cmd[1] = 21; p.life = 19 end)
+    -- J1: dano de 2 oponentes (com 3+ jogadores) e veneno; J2 fora por 21 de J1; J6 fora por vida.
+    set(1, function(p) p.life = 27; p.poison = 3; p.cmd[2] = 8; if g.players[3] then p.cmd[3] = 5 end end)
+    set(2, function(p) p.cmd[1] = 21; p.life = 19 end)
+    set(3, function(p) p.life = 13; p.cmd[1] = 14; p.cmd[2] = 6 end)
+    set(4, function(p) p.life = 6; p.poison = 4 end)
+    set(5, function(p) p.life = 100 end)
+    set(6, function(p) p.life = -3 end)
     return g
 end
 
@@ -87,10 +89,10 @@ show_board = function(plugin, store, game)
                 end },
             })
         end,
-        on_commander = function(i, rotation)
+        on_commander = function(i)
             local view
             view = Commander:new{
-                game = game, store = store, target = i, rotation = rotation,
+                game = game, store = store, target = i,
                 on_close = function() UIManager:close(view); board:rearm() end,
             }
             UIManager:show(view)
@@ -224,23 +226,29 @@ function App.open(plugin)
     local demo = tonumber(os.getenv("LIFECOUNTER_DEMO") or "")
     if demo then
         local board = show_board(plugin, store, demo_game(demo))
-        local dc = os.getenv("LIFECOUNTER_DEMO_COMMANDER")
+        local dc = tonumber((os.getenv("LIFECOUNTER_DEMO_COMMANDER") or ""):match("^(%d+)") or "")
         if dc then
-            -- "alvo:rotacao": abre a tela de comandante e simula 2 toques em + na 1a linha e 1 segurar em + na 2a
-            local target, rot = dc:match("^(%d+):(%d+)$")
-            board.on_commander(tonumber(target), tonumber(rot))
-            local Event = require("ui/event")
+            -- "alvo": abre a tela de dano do alvo (a faixa gira sozinha se ele esta em cima) e simula
+            -- 2 toques em + no 1o oponente, 1 segurar em + no 2o (se houver) e 1 toque no veneno +.
+            board.on_commander(dc)
+            local View = require("core.commander_view")
             local Geom = require("ui/geometry")
             local top = UIManager._window_stack[#UIManager._window_stack].widget
-            local function send(kind, row, action, delay)
-                local r = top.layout.rows[row][action]
-                local x, y = r.x + 5, r.y + 5
-                if tonumber(rot) == 180 then x, y = top.layout.w - 1 - x, top.layout.h - 1 - y end
+            local l = top.layout
+            local function send(kind, rect, rotation, lx, ly, delay)
+                local x, y = View.screen_point(rect, rotation, lx, ly)
                 UIManager:scheduleIn(delay, function()
                     UIManager:sendEvent(Event:new("Gesture", { ges = kind, pos = Geom:new{ x = x, y = y, w = 0, h = 0 }, time = 0 }))
                 end)
             end
-            send("tap", 1, "plus", 1); send("tap", 1, "plus", 1.5); send("hold", 2, "plus", 2)
+            local opponents = {}
+            for _, c in ipairs(l.cells) do if c.index ~= dc then opponents[#opponents + 1] = c end end
+            local o1, o2 = opponents[1], opponents[2]
+            send("tap", o1, o1.rotation, o1.w - 20, math.floor(o1.h / 2), 1)
+            send("tap", o1, o1.rotation, o1.w - 20, math.floor(o1.h / 2), 1.5)
+            if o2 then send("hold", o2, o2.rotation, o2.w - 20, math.floor(o2.h / 2), 2) end
+            local pp = l.controls.poison_plus
+            send("tap", l.band, l.band.rotation, pp.x + 5, pp.y + 5, 2.5)
         end
         run_sim()
         return

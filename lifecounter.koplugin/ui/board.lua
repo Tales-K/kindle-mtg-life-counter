@@ -8,8 +8,7 @@ local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
 local Layout = require("core.layout")
 local Panel = require("ui/panel")
-local TextWidget = require("ui/widget/textwidget")
-local Font = require("ui/font")
+local Draw = require("ui/draw")
 local Guard = require("core.input_guard")
 local Tuning = require("core.tuning")
 local socket = require("socket")
@@ -50,8 +49,13 @@ function Board:_panel(index)
     for _, p in ipairs(self.layout.panels) do if p.index == index then return p end end
 end
 
-function Board:_act(index, zone, big)
-    if not Actions.apply(self.game, self.store, index, zone, big) then return end
+function Board:_act(index, zone, big, rotation)
+    local result = Actions.on_panel(self.game, self.store, index, zone, big)
+    if result == "open" then
+        if self.on_commander then self.on_commander(index, rotation) end
+        return
+    end
+    if result ~= "changed" then return end
     self.changes = self.changes + 1
     local p = self:_panel(index)
     local region = Geom:new{ x = p.x, y = p.y, w = p.w, h = p.h }
@@ -68,11 +72,7 @@ function Board:onTap(_, ges)
         return true
     end
     local zone = Layout.zone_at(hit.panel.w, hit.panel.h, hit.lx, hit.ly)
-    if zone == "commander" then
-        if self.on_commander then self.on_commander(hit.index, hit.panel.rotation) end
-    else
-        self:_act(hit.index, zone, false)
-    end
+    self:_act(hit.index, zone, false, hit.panel.rotation)
     return true
 end
 
@@ -108,28 +108,30 @@ end
 function Board:paintTo(bb, x, y)
     bb:paintRect(0, 0, self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
     for _, p in ipairs(self.layout.panels) do
-        local player = self.game.players[p.index]
-        local status = self.game:status(p.index)
-        local key = status_key(player, status)
+        local key = status_key(self.game.players[p.index], self.game:status(p.index))
         local entry = self.cache[p.index]
         if not entry or entry.key ~= key then
             if entry then entry.bb:free() end
-            entry = { key = key, bb = Panel.render_oriented(player, status, p.w, p.h, p.rotation, p.index) }
+            entry = { key = key, bb = Panel.render_oriented(self.game, p.index, p.w, p.h, p.rotation) }
             self.cache[p.index] = entry
         end
         bb:blitFrom(entry.bb, p.x, p.y, 0, 0, p.w, p.h)
     end
     local c = self.layout.center
-    bb:paintBorder(c.x, c.y, c.w, c.h, 2, Blitbuffer.COLOR_BLACK)
-    local tw = TextWidget:new{ text = "menu", face = Font:getFace("cfont", 26), fgcolor = Blitbuffer.COLOR_BLACK }
-    local s = tw:getSize()
-    tw:paintTo(bb, c.x + math.floor((c.w - s.w) / 2), c.y + math.floor((c.h - s.h) / 2))
+    -- Barra central do mockup A2: duas linhas e o botao MENU (o toque vale na barra toda).
+    local k = c.h / 86
+    local lw = math.max(2, math.floor(4 * k + 0.5))
+    bb:paintRect(c.x, c.y, c.w, lw, Blitbuffer.COLOR_BLACK)
+    bb:paintRect(c.x, c.y + c.h - lw - 1, c.w, lw, Blitbuffer.COLOR_BLACK)
+    local bw, pad = math.floor(220 * k), math.floor(10 * k)
+    local button = { x = c.x + math.floor((c.w - bw) / 2), y = c.y + pad, w = bw, h = c.h - 2 * pad }
+    Draw.border_round(bb, button, lw, Blitbuffer.COLOR_BLACK, math.floor(14 * k))
+    Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, "MENU", 36 * k, { bold = true })
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
     if self.guard.waiting_paint then
         UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
     end
-    tw:free()
 end
 
 function Board:onCloseWidget()
