@@ -64,6 +64,7 @@ function Board:_act(index, zone, big, rotation)
 end
 
 function Board:onTap(_, ges)
+    if self.on_activity then self.on_activity() end
     if self:_ignored() then return true end
     local pos = ges.pos
     local hit = Layout.hit(self.layout, pos.x, pos.y)
@@ -77,6 +78,7 @@ function Board:onTap(_, ges)
 end
 
 function Board:onHold(_, ges)
+    if self.on_activity then self.on_activity() end
     if self:_ignored() then return true end
     local mode = Tuning.HOLD_MODE
     if mode == "buttons" then return true end

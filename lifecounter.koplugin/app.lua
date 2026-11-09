@@ -7,6 +7,9 @@ local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
 local Fs = require("core.fs")
 local Game = require("core.game")
+local KeepAwake = require("core.keep_awake")
+local Tuning = require("core.tuning")
+local socket = require("socket")
 local Messages = require("core.update_messages")
 local RollbackNotice = require("core.rollback_notice")
 local Store = require("core.store")
@@ -51,6 +54,21 @@ end
 
 local show_start, show_board, new_game
 
+-- Kindle acordado durante a partida: cada toque renova; KEEP_AWAKE_S sem toque libera o descanso.
+local function set_awake(on)
+    local Device = require("device")
+    if Device:isKindle() then
+        os.execute("lipc-set-prop com.lab126.powerd preventScreenSaver " .. (on and "1" or "0"))
+    end
+end
+local keep = KeepAwake.new{ timeout = Tuning.KEEP_AWAKE_S, set = set_awake }
+local current_board -- so a partida que esta na tela controla o "acordado"
+local function keep_tick()
+    keep:check(socket.gettime())
+    if current_board then UIManager:scheduleIn(60, keep_tick) end
+end
+local function activity() keep:touch(socket.gettime()) end
+
 show_board = function(plugin, store, game)
     local Board = require("ui/board")
     local Commander = require("ui/commander")
@@ -58,11 +76,16 @@ show_board = function(plugin, store, game)
     local board
     local function close_board()
         UIManager:close(board)
+        if current_board == board then
+            current_board = nil
+            UIManager:unschedule(keep_tick)
+            keep:stop()
+        end
         UIManager:allowStandby()
         UIManager:setDirty("all", "full")
     end
     board = Board:new{
-        game = game, store = store,
+        game = game, store = store, on_activity = activity,
         on_menu = function()
             show_menu("Menu", {
                 { text = "Voltar ao jogo" },
@@ -92,13 +115,17 @@ show_board = function(plugin, store, game)
         on_commander = function(i)
             local view
             view = Commander:new{
-                game = game, store = store, target = i,
+                game = game, store = store, target = i, on_activity = activity,
                 on_close = function() UIManager:close(view); board:rearm() end,
             }
             UIManager:show(view)
         end,
     }
     UIManager:show(board)
+    current_board = board
+    activity()
+    UIManager:unschedule(keep_tick)
+    UIManager:scheduleIn(60, keep_tick)
     return board
 end
 

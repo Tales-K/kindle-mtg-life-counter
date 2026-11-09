@@ -45,12 +45,14 @@ function Commander:_do(hit, big)
 end
 
 function Commander:onTap(_, ges)
+    if self.on_activity then self.on_activity() end
     if self.guard:ignore(socket.gettime()) then return true end
     self:_do(View.hit(self.layout, ges.pos.x, ges.pos.y), false)
     return true
 end
 
 function Commander:onHold(_, ges)
+    if self.on_activity then self.on_activity() end
     if self.guard:ignore(socket.gettime()) then return true end
     local mode = Tuning.HOLD_MODE
     if mode == "buttons" then return true end
