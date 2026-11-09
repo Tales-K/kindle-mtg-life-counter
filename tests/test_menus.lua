@@ -14,49 +14,49 @@ local function ids(items)
     return out
 end
 
-H.test("start menu ids are stable: continue, new, update, koreader, language, exit", function()
+H.test("start menu ids are stable: continue, new, update, language, exit (no Open KOReader)", function()
     for _, lang in ipairs({ "en", "pt" }) do
         I18n.set(lang)
-        H.eq(ids(Menus.start(true)), { "continue", "new", "update", "koreader", "language", "exit" })
-        H.eq(ids(Menus.start(false)), { "new", "update", "koreader", "language", "exit" })
+        H.eq(ids(Menus.start(true)), { "continue", "new", "update", "language", "exit" })
+        H.eq(ids(Menus.start(false)), { "new", "update", "language", "exit" })
     end
     I18n.set("en")
 end)
 
-H.test("start menu in English: Exit leaves KOReader, Open KOReader stays", function()
+H.test("start menu in English: Exit leaves KOReader", function()
     I18n.set("en")
-    H.eq(labels(Menus.start(true)), { "Continue game", "New game", "Update", "Open KOReader", "English / Português", "Exit" })
+    H.eq(labels(Menus.start(true)), { "Continue game", "New game", "Update", "English / Português", "Exit" })
 end)
 
 H.test("start menu in Portuguese", function()
     I18n.set("pt")
-    H.eq(labels(Menus.start(true)), { "Continuar partida", "Nova partida", "Atualizar", "Abrir o KOReader", "English / Português", "Sair" })
+    H.eq(labels(Menus.start(true)), { "Continuar partida", "Nova partida", "Atualizar", "English / Português", "Sair" })
     I18n.set("en")
 end)
 
 H.test("start menu: the language item is drawn as flags", function()
     I18n.set("en")
     local items = Menus.start(false)
-    H.eq(items[4].id, "language")
-    H.eq(items[4].kind, "language")
+    H.eq(items[3].id, "language")
+    H.eq(items[3].kind, "language")
 end)
 
-H.test("game menu ids are stable: back, main_menu, restart, new, koreader, exit", function()
+H.test("game menu ids are stable: back, main_menu, restart, new, exit (no Open KOReader)", function()
     for _, lang in ipairs({ "en", "pt" }) do
         I18n.set(lang)
-        H.eq(ids(Menus.game()), { "back", "main_menu", "restart", "new", "koreader", "exit" })
+        H.eq(ids(Menus.game()), { "back", "main_menu", "restart", "new", "exit" })
     end
     I18n.set("en")
 end)
 
 H.test("game menu in English", function()
     I18n.set("en")
-    H.eq(labels(Menus.game()), { "Back to game", "Back to main menu", "Restart game", "New game", "Open KOReader", "Exit" })
+    H.eq(labels(Menus.game()), { "Back to game", "Back to main menu", "Restart game", "New game", "Exit" })
 end)
 
 H.test("game menu in Portuguese", function()
     I18n.set("pt")
-    H.eq(labels(Menus.game()), { "Voltar ao jogo", "Voltar ao menu principal", "Reiniciar partida", "Nova partida", "Abrir o KOReader", "Sair" })
+    H.eq(labels(Menus.game()), { "Voltar ao jogo", "Voltar ao menu principal", "Reiniciar partida", "Nova partida", "Sair" })
     I18n.set("en")
 end)
 

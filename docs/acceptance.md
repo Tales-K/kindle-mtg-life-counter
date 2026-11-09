@@ -32,7 +32,6 @@ Marque cada item depois de testar no aparelho.
 - [ ] "Sair" / "Exit" (tela inicial ou menu da partida) sai do KOReader e volta à tela inicial do Kindle; o atalho
   "Cryo MTG Life Counter" da biblioteca (capa "CRYO" com floco de neve) abre de novo e "Continuar partida" mostra os mesmos números.
 - [ ] "Voltar ao menu principal" (menu da partida) mostra a tela inicial; "Continuar partida" volta à mesma partida.
-- [ ] "Abrir o KOReader" fecha só o contador e fica no KOReader.
 - [ ] Deixar o Kindle dormir e acordar no meio da partida: números mantidos.
 - [ ] Menu (barra central): "Nova partida" e "Reiniciar partida" pedem confirmação.
 - [ ] Sem Wi-Fi o jogo funciona normalmente.

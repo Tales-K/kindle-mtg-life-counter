@@ -129,7 +129,6 @@ show_board = function(plugin, store, game)
                 new = { stay = true, callback = function(menu)
                     new_game(plugin, store, true, menu, close_board)
                 end },
-                koreader = { callback = close_board },
                 exit = { callback = function()
                     close_board()
                     exit_koreader()
@@ -242,7 +241,6 @@ show_start = function(plugin, store)
         continue = { callback = function() show_board(plugin, store, saved) end },
         new = { stay = true, callback = function(menu) new_game(plugin, store, saved ~= nil, menu) end },
         update = { stay = true, callback = function() update(plugin) end },
-        koreader = {},
         -- Toque numa bandeira escolhe aquele idioma, grava e redesenha a tela inicial na hora.
         language = { stay = true, callback = function(menu, pos, rect)
             local lang = Menus.language_at(rect, pos.x)
