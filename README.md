@@ -106,11 +106,13 @@ their own panel facing their side. Inspired by LifeTap.
 ## Quick usage
 
 - **Panels:** tap the right half of a panel for +1 and the left half for -1 (from that player's side of the table); **hold** for +/-10.
+- **Recent change:** a small number above the counter shows how much it just changed (six taps on -1 show "-6");
+  taps in a row add up, and it disappears 3 seconds after the last one. Works for life, commander damage and poison.
 - **Commander damage:** the little squares in the miniature are one per opponent. Tap one to open
   that opponent's field (single number). **21** from one commander eliminates the player.
 - **Poison:** tap the drop. **10** eliminates the player.
 - **Reviving:** lowering the number that caused the elimination brings the player back.
-- **MENU** (center of the table): Back to game, Back to main menu, Restart game, New game, Exit.
+- **MENU** (center of the table): Back to game, Back to main menu, New game, Exit.
 - **Language:** pick the flag on the start screen (English by default).
 - **Screen stays on:** the Kindle does not sleep during a game, until 30 minutes without a touch.
 - **Saving:** the game is saved on every tap.

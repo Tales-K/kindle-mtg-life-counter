@@ -33,7 +33,8 @@ Marque cada item depois de testar no aparelho.
   "Cryo MTG Life Counter" da biblioteca (capa "CRYO" com floco de neve) abre de novo e "Continuar partida" mostra os mesmos números.
 - [ ] "Voltar ao menu principal" (menu da partida) mostra a tela inicial; "Continuar partida" volta à mesma partida.
 - [ ] Deixar o Kindle dormir e acordar no meio da partida: números mantidos.
-- [ ] Menu (barra central): "Nova partida" e "Reiniciar partida" pedem confirmação.
+- [ ] Menu (barra central): sem "Reiniciar partida"; "Nova partida" vai direto para a escolha de jogadores (sem confirmação).
+- [ ] Número de variação: toques seguidos mostram a soma ("-6") em cima da vida, do dano de comandante e do veneno; some 3 s depois do último toque.
 - [ ] Sem Wi-Fi o jogo funciona normalmente.
 
 ## Atualização
