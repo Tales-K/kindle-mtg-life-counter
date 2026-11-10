@@ -25,7 +25,6 @@ function M.game()
     return {
         item("back", "menu_back"),
         item("main_menu", "menu_main_menu"),
-        item("restart", "menu_restart"),
         item("new", "menu_new"),
         item("exit", "menu_exit"),
     }

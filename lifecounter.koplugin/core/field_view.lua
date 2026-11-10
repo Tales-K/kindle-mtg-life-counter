@@ -72,4 +72,12 @@ function View.value(game, owner, field)
     return p.cmd[field.source] or 0
 end
 
+-- Chaves do numero de variacao (core/delta): a vida no painel, e o numero do campo unico.
+function View.life_key(owner) return "life:" .. owner end
+
+function View.delta_key(owner, field)
+    if field.kind == "poison" then return "poison:" .. owner end
+    return "cmd:" .. owner .. ":" .. field.source
+end
+
 return View

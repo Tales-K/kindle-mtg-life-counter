@@ -1,0 +1,78 @@
+local H = require("helper")
+local Delta = require("core.delta")
+
+H.test("delta: a change shows its own amount", function()
+    local d = Delta.new(3)
+    d:add("life:1", -1, 100)
+    H.eq(d:get("life:1", 100), -1)
+end)
+
+H.test("delta: six taps on -1 in a row show -6", function()
+    local d = Delta.new(3)
+    for i = 0, 5 do d:add("life:1", -1, 100 + i * 0.5) end
+    H.eq(d:get("life:1", 103), -6)
+end)
+
+H.test("delta: the window counts from the last change", function()
+    local d = Delta.new(3)
+    d:add("life:1", -1, 100); d:add("life:1", -1, 102.5); d:add("life:1", -1, 105)
+    H.eq(d:get("life:1", 107.9), -3)
+end)
+
+H.test("delta: disappears once the window has passed", function()
+    local d = Delta.new(3)
+    d:add("life:1", -10, 100)
+    H.eq(d:get("life:1", 103), nil)
+end)
+
+H.test("delta: a change after the window starts over", function()
+    local d = Delta.new(3)
+    d:add("life:1", -1, 100)
+    d:add("life:1", 1, 104)
+    H.eq(d:get("life:1", 104), 1)
+end)
+
+H.test("delta: back to zero shows nothing, but keeps counting", function()
+    local d = Delta.new(3)
+    d:add("life:1", -1, 100); d:add("life:1", 1, 101)
+    H.eq(d:get("life:1", 101), nil)
+    d:add("life:1", 1, 102)
+    H.eq(d:get("life:1", 102), 1)
+end)
+
+H.test("delta: a zero change (clamped value) is ignored", function()
+    local d = Delta.new(3)
+    d:add("poison:1", 0, 100)
+    H.eq(d:get("poison:1", 100), nil)
+    H.eq(d:next_expiry(100), nil)
+end)
+
+H.test("delta: keys are independent", function()
+    local d = Delta.new(3)
+    d:add("life:1", -2, 100); d:add("life:2", 5, 100)
+    H.eq(d:get("life:1", 100), -2)
+    H.eq(d:get("life:2", 100), 5)
+end)
+
+H.test("delta: next expiry is the earliest visible one", function()
+    local d = Delta.new(3)
+    d:add("life:1", -1, 100); d:add("life:2", -1, 101)
+    H.eq(d:next_expiry(100.5), 103)
+    H.eq(d:next_expiry(103), 104)
+    H.eq(d:next_expiry(104), nil)
+end)
+
+H.test("delta: text is signed", function()
+    H.eq(Delta.text(-6), "-6")
+    H.eq(Delta.text(6), "+6")
+    H.eq(Delta.text(nil), nil)
+end)
+
+H.test("delta place: just above the big number when there is room", function()
+    -- numero com centro em 500, 400 px (topo dos algarismos em 360); o "-6" (40 px) fica logo acima
+    H.eq(Delta.place(500, 400, 40, 54, 0.7), 332)
+end)
+
+H.test("delta place: never above the top limit (number fills the panel)", function()
+    H.eq(Delta.place(200, 400, 40, 54, 0.7), 54)
+end)

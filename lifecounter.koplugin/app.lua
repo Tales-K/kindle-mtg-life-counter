@@ -7,6 +7,7 @@ local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
 local Fs = require("core.fs")
 local I18n = require("core.i18n")
+local Delta = require("core.delta")
 local Game = require("core.game")
 local KeepAwake = require("core.keep_awake")
 local Tuning = require("core.tuning")
@@ -95,6 +96,9 @@ show_board = function(plugin, store, game)
     local Board = require("ui/board")
     local Field = require("ui/field")
     UIManager:preventStandby()
+    -- Numero de variacao ("-6" em cima da vida): o mesmo para a tela de jogo e o campo unico, assim o
+    -- dano de comandante tambem mostra quanto a vida mudou ao voltar.
+    local deltas = Delta.new(Tuning.DELTA_S)
     local board
     local function close_board()
         UIManager:close(board, "ui")
@@ -107,7 +111,7 @@ show_board = function(plugin, store, game)
         UIManager:setDirty("all", "full")
     end
     board = Board:new{
-        game = game, store = store, on_activity = activity,
+        game = game, store = store, deltas = deltas, on_activity = activity,
         on_menu = function()
             show_menu(t("game_menu_title"), with_actions(Menus.game(), {
                 back = {},
@@ -117,17 +121,8 @@ show_board = function(plugin, store, game)
                     close_board()
                     menu:close()
                 end },
-                restart = { stay = true, callback = function(menu)
-                    confirm(t("confirm_restart"), t("confirm_restart_ok"), function()
-                        local fresh = Game.new(game.player_count, game.starting_life)
-                        store:save(fresh:to_table())
-                        show_board(plugin, store, fresh)
-                        close_board()
-                        menu:close()
-                    end)
-                end },
                 new = { stay = true, callback = function(menu)
-                    new_game(plugin, store, true, menu, close_board)
+                    new_game(plugin, store, menu, close_board)
                 end },
                 exit = { callback = function()
                     close_board()
@@ -140,7 +135,7 @@ show_board = function(plugin, store, game)
             local view
             view = Field:new{
                 game = game, store = store, owner = owner, field = field, rotation = rotation,
-                on_activity = activity,
+                deltas = deltas, on_activity = activity,
                 on_close = function() UIManager:close(view, "ui"); board:rearm() end,
             }
             UIManager:show(view, "ui")
@@ -183,17 +178,11 @@ function App.pick_players(plugin, store)
 end
 
 -- from_menu: o menu que chamou (sera fechado depois que o proximo estiver na tela).
-new_game = function(plugin, store, has_saved, from_menu, before)
-    local function go()
-        App.pick_players(plugin, store)
-        if before then before() end
-        if from_menu then from_menu:close() end
-    end
-    if has_saved then
-        confirm(t("confirm_new"), t("confirm_new_ok"), go)
-    else
-        go()
-    end
+-- Sem perguntar: a partida salva so e trocada quando a vida inicial e escolhida (voltar nao perde nada).
+new_game = function(plugin, store, from_menu, before)
+    App.pick_players(plugin, store)
+    if before then before() end
+    if from_menu then from_menu:close() end
 end
 
 local function load_config(plugin)
@@ -239,7 +228,7 @@ show_start = function(plugin, store)
     local saved = load_saved(store)
     local items = with_actions(Menus.start(saved ~= nil), {
         continue = { callback = function() show_board(plugin, store, saved) end },
-        new = { stay = true, callback = function(menu) new_game(plugin, store, saved ~= nil, menu) end },
+        new = { stay = true, callback = function(menu) new_game(plugin, store, menu) end },
         update = { stay = true, callback = function() update(plugin) end },
         -- Toque numa bandeira escolhe aquele idioma, grava e redesenha a tela inicial na hora.
         language = { stay = true, callback = function(menu, pos, rect)

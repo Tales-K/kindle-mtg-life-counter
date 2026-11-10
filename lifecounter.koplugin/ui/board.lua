@@ -6,6 +6,8 @@ local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
+local Delta = require("core.delta")
+local View = require("core.field_view")
 local Layout = require("core.layout")
 local Panel = require("ui/panel")
 local Draw = require("ui/draw")
@@ -25,6 +27,19 @@ function Board:init()
     self.changes = 0
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
     self.guard:arm(socket.gettime())
+    self.deltas = self.deltas or Delta.new(Tuning.DELTA_S)
+    -- Quando um "-6" deve sumir: redesenha so os paineis cujo desenho mudou.
+    self._expire = function()
+        if self.closed or not Draw.on_top(UIManager, self) then return end
+        local now = socket.gettime()
+        for _, p in ipairs(self.layout.panels) do
+            local entry = self.cache[p.index]
+            if entry and entry.key ~= self:_key(p.index, now) then
+                UIManager:setDirty(self, function() return Tuning.REFRESH_MODE, Geom:new{ x = p.x, y = p.y, w = p.w, h = p.h } end)
+            end
+        end
+        self:_schedule_expiry(now)
+    end
     self.ges_events = {
         Tap = { GestureRange:new{ ges = "tap", range = self.dimen } },
         Hold = { GestureRange:new{ ges = "hold", range = self.dimen } },
@@ -51,12 +66,14 @@ function Board:_panel(index)
 end
 
 function Board:_act(index, zone, big, rotation)
+    local before = self.game.players[index] and self.game.players[index].life
     local result, field = Actions.on_panel(self.game, self.store, index, zone, big)
     if result == "open" then
         if self.on_open then self.on_open(index, rotation, field) end
         return
     end
     if result ~= "changed" then return end
+    self.deltas:add(View.life_key(index), self.game.players[index].life - before, socket.gettime())
     self.changes = self.changes + 1
     local p = self:_panel(index)
     local region = Geom:new{ x = p.x, y = p.y, w = p.w, h = p.h }
@@ -112,14 +129,29 @@ local function status_key(player, status)
     return table.concat({ player.life, player.poison, status or "-", table.concat(cmd, ",") }, "|")
 end
 
+function Board:_delta(index, now)
+    return Delta.text(self.deltas:get(View.life_key(index), now))
+end
+
+function Board:_key(index, now)
+    return status_key(self.game.players[index], self.game:status(index)) .. "|" .. (self:_delta(index, now) or "")
+end
+
+function Board:_schedule_expiry(now)
+    UIManager:unschedule(self._expire)
+    local soon = self.deltas:next_expiry(now)
+    if soon then UIManager:scheduleIn(math.max(0.05, soon - now + 0.05), self._expire) end
+end
+
 function Board:paintTo(bb, x, y)
+    local now = socket.gettime()
     bb:paintRect(0, 0, self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
     for _, p in ipairs(self.layout.panels) do
-        local key = status_key(self.game.players[p.index], self.game:status(p.index))
+        local key = self:_key(p.index, now)
         local entry = self.cache[p.index]
         if not entry or entry.key ~= key then
             if entry then entry.bb:free() end
-            entry = { key = key, bb = Panel.render_oriented(self.game, p.index, p.w, p.h, p.rotation) }
+            entry = { key = key, bb = Panel.render_oriented(self.game, p.index, p.w, p.h, p.rotation, self:_delta(p.index, now)) }
             self.cache[p.index] = entry
         end
         bb:blitFrom(entry.bb, p.x, p.y, 0, 0, p.w, p.h)
@@ -134,6 +166,7 @@ function Board:paintTo(bb, x, y)
     local button = { x = c.x + math.floor((c.w - bw) / 2), y = c.y + pad, w = bw, h = c.h - 2 * pad }
     Draw.border_round(bb, button, lw, Blitbuffer.COLOR_BLACK, math.floor(14 * k))
     Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, I18n.t("menu_button"), 36 * k, { bold = true })
+    self:_schedule_expiry(now)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
     if self.guard.waiting_paint then
@@ -142,6 +175,8 @@ function Board:paintTo(bb, x, y)
 end
 
 function Board:onCloseWidget()
+    self.closed = true
+    UIManager:unschedule(self._expire)
     for _, e in pairs(self.cache) do e.bb:free() end
     self.cache = {}
 end

@@ -8,6 +8,7 @@ local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
+local Delta = require("core.delta")
 local Layout = require("core.layout")
 local View = require("core.field_view")
 local Draw = require("ui/draw")
@@ -27,6 +28,15 @@ function Field:init()
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
     self.guard:arm(socket.gettime())
     self.layout = View.layout(w, h, self.rotation)
+    self.deltas = self.deltas or Delta.new(Tuning.DELTA_S)
+    self.key = View.delta_key(self.owner, self.field)
+    -- Quando o "-6" deve sumir: redesenha o campo se ele estiver na tela.
+    self._expire = function()
+        if self.closed or not Draw.on_top(UIManager, self) then return end
+        if self:_delta(socket.gettime()) ~= self.drawn_delta then
+            UIManager:setDirty(self, function() return Tuning.REFRESH_MODE, self.dimen end)
+        end
+    end
     self.ges_events = {
         Tap = { GestureRange:new{ ges = "tap", range = self.dimen } },
         Hold = { GestureRange:new{ ges = "hold", range = self.dimen } },
@@ -39,7 +49,13 @@ function Field:_do(action, big)
         if not big and self.on_close then self.on_close() end
         return
     end
+    local p = self.game.players[self.owner]
+    local value, life = View.value(self.game, self.owner, self.field), p.life
     if Actions.on_field(self.game, self.store, self.owner, self.field, action, big) then
+        -- O dano de comandante tambem mexe na vida: a tela de jogo mostra quanto, se ainda der tempo.
+        local now = socket.gettime()
+        self.deltas:add(self.key, View.value(self.game, self.owner, self.field) - value, now)
+        self.deltas:add(View.life_key(self.owner), p.life - life, now)
         if self.bb then self.bb:free(); self.bb = nil end
         UIManager:setDirty(self, function() return Tuning.REFRESH_MODE, self.dimen end)
     end
@@ -117,6 +133,10 @@ function Field:_render_upright()
     local v = tostring(View.value(self.game, self.owner, self.field))
     local px = Draw.fit_px(#v > 1 and v or "00", f.w - 2 * (gdx + gs), f.h * 0.6, true)
     Draw.text(bb, l.w / 2, cy, v, px, { bold = true })
+    if self.drawn_delta then
+        local size = math.floor(56 * k + 0.5)
+        Draw.text(bb, l.w / 2, Delta.place(cy, px, size, f.y + math.floor(50 * k), Draw.CAP), self.drawn_delta, size, { bold = true })
+    end
     local note = View.reminder(self.field)
     if self.game:status(self.owner) then note = note .. " · " .. View.out_note(self.owner) end
     Draw.text(bb, l.w / 2, f.y + f.h - 80 * k, note, 44 * k, { bold = self.game:status(self.owner) ~= nil })
@@ -135,8 +155,21 @@ function Field:_render()
     return rot
 end
 
+function Field:_delta(now)
+    return Delta.text(self.deltas:get(self.key, now))
+end
+
 function Field:paintTo(bb, x, y)
-    if not self.bb then self.bb = self:_render() end
+    local now = socket.gettime()
+    local delta = self:_delta(now)
+    if self.bb and delta ~= self.drawn_delta then self.bb:free(); self.bb = nil end
+    if not self.bb then
+        self.drawn_delta = delta
+        self.bb = self:_render()
+    end
+    UIManager:unschedule(self._expire)
+    local soon = self.deltas:next_expiry(now)
+    if soon then UIManager:scheduleIn(math.max(0.05, soon - now + 0.05), self._expire) end
     bb:blitFrom(self.bb, 0, 0, 0, 0, self.dimen.w, self.dimen.h)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
@@ -146,6 +179,8 @@ function Field:paintTo(bb, x, y)
 end
 
 function Field:onCloseWidget()
+    self.closed = true
+    UIManager:unschedule(self._expire)
     if self.bb then self.bb:free(); self.bb = nil end
 end
 

@@ -11,6 +11,19 @@ local Draw = {}
 local BLACK = Blitbuffer.COLOR_BLACK
 local BOLD_FONT = "NotoSans-Bold.ttf"
 local CAP = 0.714 -- altura dos algarismos/maiusculas da Noto Sans, em fracao do tamanho da fonte
+Draw.CAP = CAP
+
+-- A tela esta visivel (nenhuma tela cheia por cima)? Para nao redesenhar o que esta escondido:
+-- ao voltar para cima, o fechamento de quem cobria ja redesenha tudo.
+function Draw.on_top(UIManager, w)
+    local stack = UIManager._window_stack or {}
+    for i = #stack, 1, -1 do
+        local top = stack[i].widget
+        if top == w then return true end
+        if top.covers_fullscreen then return false end
+    end
+    return false
+end
 
 -- Texto que cabe em (max_w x max_h): reduz a fonte ate caber, nunca corta.
 function Draw.fit_text(text, max_w, max_h, size, bold)

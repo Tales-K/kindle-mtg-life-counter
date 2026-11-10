@@ -3,6 +3,7 @@
 -- miniatura com o dano de comandante recebido de cada oponente. Jogador fora: painel preto com caveira.
 local Blitbuffer = require("ffi/blitbuffer")
 local Device = require("device")
+local Delta = require("core.delta")
 local Draw = require("ui/draw")
 local I18n = require("core.i18n")
 local Layout = require("core.layout")
@@ -37,7 +38,8 @@ local function minimap(bb, g, game, index, rotation, fg, bg)
 end
 
 -- Painel "em pe", do tamanho pw x ph. rotation (0/180) so gira a miniatura da mesa.
-function Panel.render(game, index, pw, ph, rotation)
+-- delta: texto da variacao recente da vida ("-6"), pequeno em cima da vida, ou nil.
+function Panel.render(game, index, pw, ph, rotation, delta)
     local player = game.players[index]
     local out = game:status(index) ~= nil
     local g = Layout.panel(pw, ph, game.player_count)
@@ -61,19 +63,24 @@ function Panel.render(game, index, pw, ph, rotation)
 
     Draw.minus(bb, g.glyph.dx, g.gy, g.glyph.size, fg)
     Draw.plus(bb, pw - g.glyph.dx, g.gy, g.glyph.size, fg)
+    local number_px = g.skull / Draw.CAP
     if out then
         Draw.skull(bb, pw / 2, g.gy, g.skull, fg, bg)
     else
         local txt = tostring(player.life)
-        local px = Draw.fit_px(#txt > 1 and txt or "00", g.life_w, g.bot_y - g.top_y, true)
-        Draw.text(bb, pw / 2, g.gy, txt, px, { bold = true, color = fg })
+        number_px = Draw.fit_px(#txt > 1 and txt or "00", g.life_w, g.bot_y - g.top_y, true)
+        Draw.text(bb, pw / 2, g.gy, txt, number_px, { bold = true, color = fg })
+    end
+    if delta then
+        local size = math.floor(g.label.size * 1.1 + 0.5)
+        Draw.text(bb, pw / 2, Delta.place(g.gy, number_px, size, g.label.cy, Draw.CAP), delta, size, { bold = true, color = fg })
     end
     return bb
 end
 
 -- Painel ja virado para quem esta sentado (rotation 0 ou 180). O chamador libera o buffer.
-function Panel.render_oriented(game, index, pw, ph, rotation)
-    local bb = Panel.render(game, index, pw, ph, rotation)
+function Panel.render_oriented(game, index, pw, ph, rotation, delta)
+    local bb = Panel.render(game, index, pw, ph, rotation, delta)
     if rotation == 180 then
         local rotated = bb:rotatedCopy(180)
         bb:free()
