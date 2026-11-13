@@ -15,6 +15,7 @@ local socket = require("socket")
 local Menus = require("core.menus")
 local Messages = require("core.update_messages")
 local RollbackNotice = require("core.rollback_notice")
+local SeatingPref = require("core.seating_pref")
 local Store = require("core.store")
 
 local App = {}
@@ -24,6 +25,8 @@ local t = I18n.t
 
 -- Idioma escolhido na tela inicial ("en"/"pt"); sem o arquivo, ingles.
 local function lang_path() return DataStorage:getSettingsDir() .. "/lifecounter_lang" end
+-- Ultimo formato da mesa de 4 ("rows"/"sides"), destacado na tela de formato.
+local function seating_path() return DataStorage:getSettingsDir() .. "/lifecounter_seating" end
 
 local function confirm(text, ok_text, ok_callback)
     UIManager:show(ConfirmBox:new{ text = text, ok_text = ok_text, cancel_text = t("cancel"), ok_callback = ok_callback })
@@ -165,10 +168,29 @@ local function choose_life(plugin, store, count, seating)
     show_menu(t("life_title"), items)
 end
 
+-- 4 jogadores: duas previas (duas fileiras | um de cada lado); toque numa escolhe e vira o padrao.
+local function choose_format(plugin, store)
+    local last = SeatingPref.load(Fs, seating_path())
+    local f, back = Menus.formats()[1], Menus.formats()[2]
+    show_menu(t("format_title"), {
+        { text = f.text, kind = f.kind, weight = f.weight, active = last, callback = function(menu, pos, rect)
+            local v = Menus.format_at(rect, pos.x)
+            SeatingPref.save(Fs, seating_path(), v)
+            choose_life(plugin, store, 4, SeatingPref.game_seating(v))
+        end },
+        { text = back.text, stay = true, callback = function(menu)
+            menu:close()
+            App.pick_players(plugin, store)
+        end },
+    })
+end
+
 function App.pick_players(plugin, store)
     local items = {}
     for _, it in ipairs(Menus.players()) do
-        items[#items + 1] = { text = it.text, callback = function() choose_life(plugin, store, it.count, it.seating) end }
+        items[#items + 1] = { text = it.text, callback = function()
+            if it.count == 4 then choose_format(plugin, store) else choose_life(plugin, store, it.count) end
+        end }
     end
     items[#items + 1] = { text = t("back"), stay = true, callback = function(menu)
         menu:close()
@@ -248,10 +270,13 @@ local function run_sim()
     local sim = os.getenv("LIFECOUNTER_SIM_TAPS")
     if not sim then return end
     local Geom = require("ui/geometry")
-    for x, y, delay in sim:gmatch("(%d+):(%d+):([%d%.]+)") do
+    -- Cada toque "x:y:segundos[:tipo]", tipo tap (padrao) | hold | hold_release.
+    for entry in sim:gmatch("[^,]+") do
+        local x, y, delay, kind = entry:match("^(%d+):(%d+):([%d%.]+):?([%a_]*)$")
+        if not x then break end
         UIManager:scheduleIn(tonumber(delay), function()
             UIManager:sendEvent(Event:new("Gesture", {
-                ges = "tap", pos = Geom:new{ x = tonumber(x), y = tonumber(y), w = 0, h = 0 }, time = 0,
+                ges = kind ~= "" and kind or "tap", pos = Geom:new{ x = tonumber(x), y = tonumber(y), w = 0, h = 0 }, time = 0,
             }))
         end)
     end

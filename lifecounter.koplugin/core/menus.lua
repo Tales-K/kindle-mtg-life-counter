@@ -30,14 +30,26 @@ function M.game()
     }
 end
 
--- Quantos jogadores: 2..6, e o 4 tambem "um de cada lado" (mesa em X, core/sides).
+-- Quantos jogadores: 2..6. Com 4, a tela seguinte pergunta o formato da mesa (M.formats).
 function M.players()
     local items = {}
     for n = 2, 6 do
         items[#items + 1] = { count = n, text = I18n.t("players_n", { n = n }) }
-        if n == 4 then items[#items + 1] = { count = 4, seating = "sides", text = I18n.t("players_sides") } end
     end
     return items
+end
+
+-- Formato da mesa de 4: um item alto com as duas previas lado a lado (ui/menu_screen desenha) e Voltar.
+function M.formats()
+    return {
+        { id = "format", kind = "format", weight = 4, text = I18n.t("format_title") },
+        item("back", "back"),
+    }
+end
+
+-- Previa tocada: a esquerda e duas fileiras, a direita um de cada lado.
+function M.format_at(r, x)
+    return x < r.x + math.floor(r.w / 2) and "rows" or "sides"
 end
 
 -- Botao de idioma: metade esquerda e o ingles, metade direita o portugues.

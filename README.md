@@ -105,10 +105,11 @@ their own panel facing their side. Inspired by LifeTap.
 
 ## Quick usage
 
-- **4 players, one per side:** pick "4 players · one per side" to split the screen along both diagonals
-  into four triangles, one per edge of the table (P1 bottom, then clockwise), each facing its player.
-  The round button in the middle opens the menu.
-- **Panels:** tap the right half of a panel for +1 and the left half for -1 (from that player's side of the table); **hold** for +/-10.
+- **4 players, two layouts:** after picking 4 players, tap the preview of the table you want: two rows,
+  or one per side (the screen split along both diagonals into four triangles, one per edge of the table,
+  P1 bottom then clockwise, each facing its player; the round button in the middle opens the menu).
+  The last layout used is highlighted next time.
+- **Panels:** tap the right half of a panel for +1 and the left half for -1 (from that player's side of the table); **hold** for +/-10, and keep holding to add another 10 every second until you let go.
 - **Recent change:** a small number above the counter shows how much it just changed (six taps on -1 show "-6");
   taps in a row add up, and it disappears 3 seconds after the last one. Works for life, commander damage and poison.
 - **Commander damage:** the little squares in the miniature are one per opponent. Tap one to open

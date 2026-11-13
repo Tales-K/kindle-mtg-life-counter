@@ -43,4 +43,5 @@ Marque cada item depois de testar no aparelho.
 - [ ] Versão quebrada de propósito: o plugin volta sozinho para a anterior.
 
 Resultados e observações:
-- [ ] "4 jogadores · um de cada lado": 4 triângulos (diagonais), cada um virado para a sua borda; ± pela metade do triângulo; campo de comandante/veneno dos laterais deitado para o jogador; botão redondo no centro abre o menu.
+- [ ] 4 jogadores → tela "Formato da mesa" com as prévias (duas fileiras | um de cada lado), o último usado destacado. Um de cada lado: 4 triângulos (diagonais), cada um virado para a sua borda; ± pela metade do triângulo; campo de comandante/veneno dos laterais deitado para o jogador; botão redondo no centro abre o menu.
+- [ ] Segurar o −/+ (vida e dano de comandante): ±10 na hora e mais ±10 a cada ~1 s até soltar; o número de variação soma tudo; cada passo só atualiza o painel (sem piscar a tela toda).

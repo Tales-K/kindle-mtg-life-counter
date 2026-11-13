@@ -48,3 +48,11 @@ H.test("hit returns nil on the title, in the gaps, in the side margins and outsi
     H.eq(ML.hit(l, -1, 10), nil)
     H.eq(ML.hit(l, 10, 972), nil)
 end)
+
+H.test("weights: a preview item gets several times the height of a normal button, all on screen", function()
+    local l = ML.compute(2, 1072, 1448, { 4, 1 })
+    local a, b = l.buttons[1], l.buttons[2]
+    H.eq(a.h >= 3.5 * b.h and a.h <= 4.5 * b.h, true)
+    H.eq(b.y + b.h <= 1448, true)
+    H.eq(a.h >= 500, true)
+end)

@@ -68,16 +68,31 @@ H.test("language half: left half is English, right half is Portuguese", function
     H.eq(Menus.language_at(r, 899), "pt")
 end)
 
-H.test("player count menu: 2, 3, 4, 4 one per side, 5, 6", function()
+H.test("player count menu: 2 to 6 (the 4-player format is asked next)", function()
     I18n.set("en")
-    local items = Menus.players()
     local got = {}
-    for i, it in ipairs(items) do got[i] = { it.count, it.seating or "-", it.text } end
-    H.eq(got, {
-        { 2, "-", "2 players" }, { 3, "-", "3 players" }, { 4, "-", "4 players" },
-        { 4, "sides", "4 players · one per side" }, { 5, "-", "5 players" }, { 6, "-", "6 players" },
-    })
-    I18n.set("pt")
-    H.eq(Menus.players()[4].text, "4 jogadores · um de cada lado")
+    for i, it in ipairs(Menus.players()) do got[i] = { it.count, it.text } end
+    H.eq(got, { { 2, "2 players" }, { 3, "3 players" }, { 4, "4 players" }, { 5, "5 players" }, { 6, "6 players" } })
+end)
+
+H.test("format menu: one tall item with both previews, then Back", function()
+    for _, lang in ipairs({ "en", "pt" }) do
+        I18n.set(lang)
+        local items = Menus.formats()
+        H.eq({ items[1].id, items[1].kind, items[2].id }, { "format", "format", "back" })
+        H.eq(items[1].weight > 2, true)
+    end
     I18n.set("en")
+    H.eq(I18n.t("format_rows"), "Two rows")
+    H.eq(I18n.t("format_sides"), "One per side")
+    I18n.set("pt")
+    H.eq(I18n.t("format_title"), "Formato da mesa")
+    H.eq(I18n.t("format_sides"), "Um de cada lado")
+    I18n.set("en")
+end)
+
+H.test("format half: left preview is two rows, right is one per side", function()
+    local r = { x = 100, y = 50, w = 800, h = 600 }
+    H.eq(Menus.format_at(r, 499), "rows")
+    H.eq(Menus.format_at(r, 500), "sides")
 end)

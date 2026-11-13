@@ -9,6 +9,7 @@ local UIManager = require("ui/uimanager")
 local Draw = require("ui/draw")
 local Guard = require("core.input_guard")
 local I18n = require("core.i18n")
+local Layout = require("core.layout")
 local ML = require("core.menu_layout")
 local Tuning = require("core.tuning")
 local socket = require("socket")
@@ -20,10 +21,14 @@ local MenuScreen = InputContainer:extend{ modal = true, covers_fullscreen = true
 -- Depois do callback o menu se fecha, a nao ser que o item tenha stay = true
 -- (nesse caso o callback chama menu:close() quando quiser). pos e o ponto tocado e rect o botao.
 -- kind = "language": o botao vira as duas bandeiras (Reino Unido e Brasil), a ativa destacada.
+-- kind = "format": previas das duas mesas de 4 (duas fileiras | um de cada lado); item.active
+-- ("rows"/"sides") e o ultimo usado, destacado. weight = altura relativa do botao (1 = normal).
 function MenuScreen:init()
     local w, h = Screen:getWidth(), Screen:getHeight()
     self.dimen = Geom:new{ x = 0, y = 0, w = w, h = h }
-    self.layout = ML.compute(#self.items, w, h)
+    local weights = {}
+    for i, it in ipairs(self.items) do weights[i] = it.weight or 1 end
+    self.layout = ML.compute(#self.items, w, h, weights)
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
     self.guard:arm(socket.gettime())
     self.ges_events = { Tap = { GestureRange:new{ ges = "tap", range = self.dimen } } }
@@ -72,6 +77,61 @@ local function paint_language(bb, r)
     end
 end
 
+-- Previa de uma mesa de 4 no estilo da mesa em miniatura: tela em pe, um quadradinho por jogador.
+local BLACK = Blitbuffer.COLOR_BLACK
+local function mini_cell(bb, cx, cy, cw, ch, index, size)
+    local r = { x = math.floor(cx - cw / 2), y = math.floor(cy - ch / 2), w = math.floor(cw), h = math.floor(ch) }
+    Draw.border_round(bb, r, 3, BLACK, math.floor(ch * 0.18))
+    Draw.text(bb, cx, cy, I18n.player(index), size, { bold = true })
+end
+
+local function paint_preview(bb, s, kind)
+    Draw.border_round(bb, s, 4, BLACK, math.floor(s.w * 0.06))
+    if kind == "rows" then
+        local pad = math.floor(s.w * 0.07)
+        for _, c in ipairs(Layout.seats(4, s.w - 2 * pad, s.h - 2 * pad, math.floor(s.h * 0.08))) do
+            local r = { x = s.x + pad + c.x + 4, y = s.y + pad + c.y, w = c.w - 8, h = c.h }
+            Draw.border_round(bb, r, 3, BLACK, math.floor(r.w * 0.12))
+            Draw.text(bb, r.x + r.w / 2, r.y + r.h / 2, I18n.player(c.index), r.w * 0.3, { bold = true })
+        end
+        return
+    end
+    -- Um de cada lado: as diagonais, o botao redondo no meio e um quadradinho perto de cada borda.
+    local t = 3
+    for y = 0, s.h - 1 do
+        local x = (y + 0.5) * s.w / s.h
+        Draw.rect(bb, s.x + x - t / 2, s.y + y, t, 1, BLACK)
+        Draw.rect(bb, s.x + s.w - x - t / 2, s.y + y, t, 1, BLACK)
+    end
+    local cx, cy = s.x + s.w / 2, s.y + s.h / 2
+    local rr = s.w * 0.07
+    Draw.ellipse(bb, cx, cy, rr, rr, BLACK)
+    Draw.ellipse(bb, cx, cy, rr - t, rr - t, Blitbuffer.COLOR_WHITE)
+    local cw, ch, size = s.w * 0.3, s.w * 0.17, s.w * 0.075
+    mini_cell(bb, cx, s.y + s.h * 0.82, cw, ch, 1, size)
+    mini_cell(bb, s.x + s.w * 0.16, cy, ch, cw, 2, size)
+    mini_cell(bb, cx, s.y + s.h * 0.18, cw, ch, 3, size)
+    mini_cell(bb, s.x + s.w * 0.84, cy, ch, cw, 4, size)
+end
+
+-- Botao de formato: duas metades com a previa e o nome; o ultimo usado com borda grossa e nome em negrito.
+local function paint_format(bb, r, active)
+    local gap = math.floor(r.w * 0.04)
+    local half = math.floor((r.w - gap) / 2)
+    for i, kind in ipairs({ "rows", "sides" }) do
+        local box = { x = r.x + (i - 1) * (half + gap), y = r.y, w = half, h = r.h }
+        local on = kind == active
+        Draw.border_round(bb, box, on and 9 or 2, BLACK, math.floor(box.w * 0.06))
+        local ph = math.floor(box.h * 0.74)
+        local pw = math.min(math.floor(ph * 1072 / 1448), box.w - 40)
+        ph = math.floor(pw * 1448 / 1072)
+        local s = { x = box.x + math.floor((box.w - pw) / 2), y = box.y + math.floor(box.h * 0.05), w = pw, h = ph }
+        paint_preview(bb, s, kind)
+        Draw.text(bb, box.x + box.w / 2, s.y + s.h + math.floor((box.y + box.h - s.y - s.h) / 2), I18n.t("format_" .. kind),
+            math.floor(box.h * 0.055), { bold = on })
+    end
+end
+
 function MenuScreen:paintTo(bb, x, y)
     local l = self.layout
     bb:paintRect(0, 0, l.w, l.h, Blitbuffer.COLOR_WHITE)
@@ -80,6 +140,8 @@ function MenuScreen:paintTo(bb, x, y)
         local r = l.buttons[i]
         if item.kind == "language" then
             paint_language(bb, r)
+        elseif item.kind == "format" then
+            paint_format(bb, r, item.active)
         else
             Draw.box(bb, r, 3)
             Draw.centered(bb, r, item.text, 40)
