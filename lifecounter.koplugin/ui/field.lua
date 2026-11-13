@@ -8,6 +8,7 @@ local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
+local Debug = require("ui/debug")
 local Delta = require("core.delta")
 local HoldRepeat = require("core.hold_repeat")
 local Layout = require("core.layout")
@@ -80,7 +81,11 @@ end
 function Field:onTap(_, ges)
     self.repeat_hold:stop()
     if self.on_activity then self.on_activity() end
-    if self.guard:ignore(socket.gettime()) then return true end
+    if self.guard:ignore(socket.gettime()) then
+        Debug.event(string.format("field tap %d,%d IGNORED (open guard)", ges.pos.x, ges.pos.y))
+        return true
+    end
+    Debug.event(string.format("field tap %d,%d -> %s", ges.pos.x, ges.pos.y, tostring(View.hit(self.layout, ges.pos.x, ges.pos.y))))
     self:_do(View.hit(self.layout, ges.pos.x, ges.pos.y), false)
     return true
 end
@@ -192,12 +197,21 @@ function Field:paintTo(bb, x, y)
     local soon = self.deltas:next_expiry(now)
     if soon then UIManager:scheduleIn(math.max(0.05, soon - now + 0.05), self._expire) end
     bb:blitFrom(self.bb, 0, 0, 0, 0, self.dimen.w, self.dimen.h)
+    Debug.paint(bb, self.dimen.w, self.dimen.h)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
     if self.guard.waiting_paint then
         UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
     end
 end
+
+
+-- Eventos de energia espalhados pelo KOReader: so registram no modo debug (nao consomem).
+function Field:onSuspend() Debug.broadcast("Suspend") end
+function Field:onResume() Debug.broadcast("Resume") end
+function Field:onOutOfScreenSaver() Debug.broadcast("OutOfScreenSaver") end
+function Field:onCharging() Debug.broadcast("Charging") end
+function Field:onNotCharging() Debug.broadcast("NotCharging") end
 
 function Field:onCloseWidget()
     self.closed = true

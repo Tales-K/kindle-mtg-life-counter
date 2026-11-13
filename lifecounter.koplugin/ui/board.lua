@@ -6,6 +6,7 @@ local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
+local Debug = require("ui/debug")
 local Delta = require("core.delta")
 local Starter = require("core.starter")
 local HoldRepeat = require("core.hold_repeat")
@@ -122,9 +123,16 @@ end
 function Board:onTap(_, ges)
     self.repeat_hold:stop() -- qualquer toque novo encerra uma repeticao que tenha ficado ligada
     if self.on_activity then self.on_activity() end
-    if self:_ignored() then return true end
     local pos = ges.pos
+    if self:_ignored() then
+        Debug.event(string.format("tap %d,%d IGNORED (open guard)", pos.x, pos.y))
+        return true
+    end
     local hit = self:_hit(pos.x, pos.y)
+    if Debug.enabled then
+        local z = hit and self:_zone(hit)
+        Debug.event(string.format("tap %d,%d -> %s", pos.x, pos.y, hit and ("P" .. hit.index .. " " .. tostring(z and z.zone)) or "center/menu"))
+    end
     if not hit then
         if self:_in_center(pos) and self.on_menu then self.on_menu() end
         return true
@@ -141,6 +149,7 @@ function Board:onHold(_, ges)
     local hit = self:_hit(ges.pos.x, ges.pos.y)
     if not hit then return true end
     local zone = self:_zone(hit)
+    Debug.event(string.format("hold P%d %s", hit.index, tostring(zone and zone.zone)))
     if mode == "hold" then
         self:_act(hit.index, zone, true)
         if zone and (zone.zone == "plus" or zone.zone == "minus") then
@@ -153,6 +162,7 @@ function Board:onHold(_, ges)
 end
 
 function Board:onHoldRelease()
+    if self.repeat_hold.action ~= nil then Debug.event("hold released (repeat stopped)") end
     self.repeat_hold:stop()
     local p = self.pending_hold
     self.pending_hold = nil
@@ -274,9 +284,11 @@ end
 
 function Board:paintTo(bb, x, y)
     local now = socket.gettime()
+    Debug.paints = Debug.paints + 1
     if self.sides then
         self:_paint_sides(bb, now)
         self:_paint_dice(bb)
+        Debug.paint(bb, self.dimen.w, self.dimen.h)
         self:_schedule_expiry(now)
         if self.guard.waiting_paint then
             UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
@@ -305,6 +317,7 @@ function Board:paintTo(bb, x, y)
     Draw.border_round(bb, button, lw, Blitbuffer.COLOR_BLACK, math.floor(14 * k))
     Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, I18n.t("menu_button"), 36 * k, { bold = true })
     self:_paint_dice(bb)
+    Debug.paint(bb, self.dimen.w, self.dimen.h)
     self:_schedule_expiry(now)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
@@ -312,6 +325,14 @@ function Board:paintTo(bb, x, y)
         UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
     end
 end
+
+
+-- Eventos de energia espalhados pelo KOReader: so registram no modo debug (nao consomem).
+function Board:onSuspend() Debug.broadcast("Suspend") end
+function Board:onResume() Debug.broadcast("Resume") end
+function Board:onOutOfScreenSaver() Debug.broadcast("OutOfScreenSaver") end
+function Board:onCharging() Debug.broadcast("Charging") end
+function Board:onNotCharging() Debug.broadcast("NotCharging") end
 
 function Board:onCloseWidget()
     self.closed = true

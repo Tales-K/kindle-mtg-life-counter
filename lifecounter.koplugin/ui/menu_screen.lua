@@ -6,6 +6,7 @@ local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
+local Debug = require("ui/debug")
 local Draw = require("ui/draw")
 local Guard = require("core.input_guard")
 local I18n = require("core.i18n")
@@ -31,17 +32,48 @@ function MenuScreen:init()
     self.layout = ML.compute(#self.items, w, h, weights)
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
     self.guard:arm(socket.gettime())
-    self.ges_events = { Tap = { GestureRange:new{ ges = "tap", range = self.dimen } } }
+    self.ges_events = {
+        Tap = { GestureRange:new{ ges = "tap", range = self.dimen } },
+        Hold = { GestureRange:new{ ges = "hold", range = self.dimen } },
+        HoldRelease = { GestureRange:new{ ges = "hold_release", range = self.dimen } },
+    }
+    -- Item com on_long_hold: segurar ~5 s (o "hold" do KOReader chega ~0,5 s depois do toque).
+    self._long = function()
+        local item = self._long_item
+        self._long_item = nil
+        if item and item.on_long_hold then item.on_long_hold(self) end
+    end
 end
 
 function MenuScreen:close()
     UIManager:close(self, "ui")
 end
 
-function MenuScreen:onTap(_, ges)
-    if self.guard:ignore(socket.gettime()) then return true end
+function MenuScreen:onHold(_, ges)
     local i = ML.hit(self.layout, ges.pos.x, ges.pos.y)
     local item = i and self.items[i]
+    if item and item.on_long_hold then
+        self._long_item = item
+        UIManager:unschedule(self._long)
+        UIManager:scheduleIn(4.5, self._long)
+    end
+    return true
+end
+
+function MenuScreen:onHoldRelease()
+    self._long_item = nil
+    UIManager:unschedule(self._long)
+    return true
+end
+
+function MenuScreen:onTap(_, ges)
+    if self.guard:ignore(socket.gettime()) then
+        Debug.event(string.format("menu tap %d,%d IGNORED (open guard)", ges.pos.x, ges.pos.y))
+        return true
+    end
+    local i = ML.hit(self.layout, ges.pos.x, ges.pos.y)
+    local item = i and self.items[i]
+    Debug.event(string.format("menu '%s' tap -> %s", tostring(self.title), item and item.text or "nothing"))
     if item then
         if item.callback then item.callback(self, ges.pos, self.layout.buttons[i]) end
         if not item.stay then self:close() end
@@ -147,11 +179,23 @@ function MenuScreen:paintTo(bb, x, y)
             Draw.centered(bb, r, item.text, 40)
         end
     end
+    Debug.paint(bb, l.w, l.h)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
     if self.guard.waiting_paint then
         UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
     end
+end
+
+-- Eventos de energia espalhados pelo KOReader: so registram no modo debug (nao consomem).
+function MenuScreen:onSuspend() Debug.broadcast("Suspend") end
+function MenuScreen:onResume() Debug.broadcast("Resume") end
+function MenuScreen:onOutOfScreenSaver() Debug.broadcast("OutOfScreenSaver") end
+function MenuScreen:onCharging() Debug.broadcast("Charging") end
+function MenuScreen:onNotCharging() Debug.broadcast("NotCharging") end
+
+function MenuScreen:onCloseWidget()
+    UIManager:unschedule(self._long)
 end
 
 return MenuScreen

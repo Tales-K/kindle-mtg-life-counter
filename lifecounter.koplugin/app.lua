@@ -5,6 +5,7 @@ local Event = require("ui/event")
 local InfoMessage = require("ui/widget/infomessage")
 local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
+local Debug = require("ui/debug")
 local Fs = require("core.fs")
 local I18n = require("core.i18n")
 local Delta = require("core.delta")
@@ -43,9 +44,20 @@ local function with_actions(items, actions)
     local out = {}
     for i, it in ipairs(items) do
         local a = actions[it.id] or {}
-        out[i] = { text = it.text, kind = it.kind, callback = a.callback, stay = a.stay }
+        out[i] = { text = it.text, kind = it.kind, callback = a.callback, stay = a.stay, on_long_hold = a.on_long_hold }
     end
     return out
+end
+
+-- Com o debug ligado, o menu da partida ganha "Log de debug" (antes de Sair): as ultimas linhas
+-- do arquivo em tela cheia, inclusive as de antes de um travamento.
+local function with_debug(items)
+    if not Debug.enabled then return items end
+    table.insert(items, #items, { text = t("menu_debug_log"), callback = function()
+        local LogScreen = require("ui/log_screen")
+        UIManager:show(LogScreen:new{ lines = Debug.last_lines(40) }, "ui")
+    end })
+    return items
 end
 
 local function exit_koreader()
@@ -80,18 +92,37 @@ local show_start, show_board, new_game
 
 -- Kindle acordado durante a partida: cada toque renova; KEEP_AWAKE_S sem toque libera o descanso.
 local function set_awake(on)
+    Debug.event("keep-awake " .. (on and "ON" or "OFF"))
     local Device = require("device")
     if Device:isKindle() then
         -- Em segundo plano: ao liberar (0) o Kindle pode entrar em descanso na hora e avisar o
         -- KOReader; se o KOReader estiver parado esperando este comando, os dois travam.
-        os.execute("lipc-set-prop com.lab126.powerd preventScreenSaver " .. (on and "1" or "0") .. " >/dev/null 2>&1 &")
+        os.execute(Debug.lipc_command(on and "1" or "0"))
+    else
+        Debug.event("lipc skipped (not a Kindle)")
     end
 end
-local keep = KeepAwake.new{ timeout = Tuning.KEEP_AWAKE_S, set = set_awake }
+-- Gancho so de desenvolvimento: LIFECOUNTER_KEEP_AWAKE_S encurta o modo acordado (emulador).
+local keep = KeepAwake.new{ timeout = tonumber(os.getenv("LIFECOUNTER_KEEP_AWAKE_S") or "") or Tuning.KEEP_AWAKE_S, set = set_awake }
+local KEEP_TICK_S = math.min(60, keep.timeout)
 local current_board -- so a partida que esta na tela controla o "acordado"
 local function keep_tick()
     keep:check(socket.gettime())
-    if current_board then UIManager:scheduleIn(60, keep_tick) end
+    if current_board then UIManager:scheduleIn(KEEP_TICK_S, keep_tick) end
+end
+
+-- Linha de estado da barra de debug: modo acordado e timers da partida.
+Debug.status = function()
+    local now = socket.gettime()
+    local s = keep.on and keep.deadline and string.format("awake ON %ds left", math.max(0, math.floor(keep.deadline - now))) or "awake off"
+    local b = current_board
+    if b then
+        if b.repeat_hold and b.repeat_hold.action ~= nil then s = s .. " | hold-repeat ON" end
+        local e = b.deltas and b.deltas:next_expiry(now)
+        if e then s = s .. string.format(" | delta %.1fs", e - now) end
+        if b.rolling then s = s .. " | rolling" end
+    end
+    return s
 end
 local function activity() keep:touch(socket.gettime()) end
 
@@ -104,6 +135,7 @@ show_board = function(plugin, store, game)
     local deltas = Delta.new(Tuning.DELTA_S)
     local board
     local function close_board()
+        Debug.event("board closed")
         UIManager:close(board, "ui")
         if current_board == board then
             current_board = nil
@@ -116,7 +148,7 @@ show_board = function(plugin, store, game)
     board = Board:new{
         game = game, store = store, deltas = deltas, on_activity = activity,
         on_menu = function()
-            show_menu(t("game_menu_title"), with_actions(Menus.game(), {
+            show_menu(t("game_menu_title"), with_debug(with_actions(Menus.game(), {
                 back = {},
                 -- Sorteio de quem comeca: o menu fecha e o sorteio roda na tela de jogo.
                 who_starts = { callback = function()
@@ -127,6 +159,13 @@ show_board = function(plugin, store, game)
                     show_start(plugin, store)
                     close_board()
                     menu:close()
+                end,
+                -- Escondido: segurar 5 s liga/desliga o modo debug (barra no pe da tela + arquivo).
+                on_long_hold = function(menu)
+                    Debug.set_enabled(not Debug.enabled)
+                    UIManager:show(InfoMessage:new{ text = t(Debug.enabled and "debug_on" or "debug_off"), timeout = 2 })
+                    local r = Debug.bar_rect(menu.dimen.w, menu.dimen.h)
+                    UIManager:setDirty(menu, function() return "ui", require("ui/geometry"):new(r) end)
                 end },
                 new = { stay = true, callback = function(menu)
                     new_game(plugin, store, menu, close_board)
@@ -135,15 +174,16 @@ show_board = function(plugin, store, game)
                     close_board()
                     exit_koreader()
                 end },
-            }))
+            })))
         end,
         -- Toque num quadradinho de oponente ou na gota: campo unico virado para o dono do painel.
         on_open = function(owner, rotation, field)
+            Debug.event(string.format("field open P%d %s%s", owner, field.kind, field.source and (" from P" .. field.source) or ""))
             local view
             view = Field:new{
                 game = game, store = store, owner = owner, field = field, rotation = rotation,
                 deltas = deltas, on_activity = activity,
-                on_close = function() UIManager:close(view, "ui"); board:rearm() end,
+                on_close = function() Debug.event("field closed"); UIManager:close(view, "ui"); board:rearm() end,
             }
             UIManager:show(view, "ui")
         end,
@@ -152,7 +192,8 @@ show_board = function(plugin, store, game)
     current_board = board
     activity()
     UIManager:unschedule(keep_tick)
-    UIManager:scheduleIn(60, keep_tick)
+    UIManager:scheduleIn(KEEP_TICK_S, keep_tick)
+    Debug.event(string.format("board shown (%d players%s)", game.player_count, game.seating and ", " .. game.seating or ""))
     return board
 end
 
@@ -286,7 +327,55 @@ local function run_sim()
     end
 end
 
+-- Gancho so de desenvolvimento: LIFECOUNTER_SIM_EVENTS="ss_in:5,ss_out:9,suspend:12,resume:15"
+-- imita no emulador a tela de descanso do KOReader (IntoSS/OutOfSS do Kindle) e os eventos de energia.
+local function run_sim_events()
+    local sim = os.getenv("LIFECOUNTER_SIM_EVENTS")
+    if not sim then return end
+    for name, delay in sim:gmatch("([%a_]+):([%d%.]+)") do
+        UIManager:scheduleIn(tonumber(delay), function()
+            local Screensaver = require("ui/screensaver")
+            if name == "ss_in" then
+                Debug.pause("sim IntoScreenSaver")
+                Screensaver:setup()
+                Screensaver:show()
+            elseif name == "ss_out" or name == "ss_out_tap" then
+                -- ss_out_tap: como com "Ate um toque" (o padrao quando a opcao nunca foi mexida).
+                local old = G_reader_settings:readSetting("screensaver_delay")
+                if name == "ss_out_tap" then G_reader_settings:saveSetting("screensaver_delay", "tap") end
+                Screensaver:close()
+                G_reader_settings:saveSetting("screensaver_delay", old)
+                Debug.resume("sim OutOfScreenSaver")
+            elseif name == "stack" then
+                local names = {}
+                for _, w in ipairs(UIManager._window_stack) do
+                    names[#names + 1] = tostring(w.widget.name or "?") .. (w.widget.modal and "(m)" or "") .. (w.widget.covers_fullscreen and "(f)" or "")
+                end
+                Debug.event("stack: " .. table.concat(names, " < ") .. " ignore_touch=" .. tostring(UIManager._input_gestures_disabled))
+            elseif name == "ssprobe" then
+                local w = Screensaver.screensaver_widget
+                local d = w and w.main_frame and w.main_frame.dimen
+                Debug.event("ssprobe widget=" .. tostring(w ~= nil) .. " dimen=" .. (d and (d.x .. "," .. d.y .. "," .. d.w .. "x" .. d.h) or "nil")
+                    .. " ges=" .. tostring(w and w.ges_events and w.ges_events.Tap ~= nil))
+                if w then
+                    local Geom = require("ui/geometry")
+                    local ok, r = pcall(function()
+                        return w:handleEvent(Event:new("Gesture", { ges = "tap", pos = Geom:new{ x = 300, y = 720, w = 0, h = 0 }, time = 0 }))
+                    end)
+                    Debug.event("ssprobe handled=" .. tostring(ok) .. "/" .. tostring(r))
+                end
+            elseif name == "suspend" then
+                UIManager:broadcastEvent(Event:new("Suspend"))
+            elseif name == "resume" then
+                UIManager:broadcastEvent(Event:new("Resume"))
+            end
+        end)
+    end
+end
+
 function App.open(plugin)
+    Debug.setup()
+    run_sim_events()
     local store = Store.new(DataStorage:getSettingsDir() .. "/lifecounter_state.lua")
     I18n.load(Fs, lang_path())
     -- Gancho so de desenvolvimento: LIFECOUNTER_LANG=en|pt forca o idioma (sem gravar).

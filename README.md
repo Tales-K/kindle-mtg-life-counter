@@ -123,6 +123,14 @@ their own panel facing their side. Inspired by LifeTap.
 - **Screen stays on:** the Kindle does not sleep during a game, until 30 minutes without a touch.
 - **Saving:** the game is saved on every tap.
 
+## Debug mode (hidden)
+
+In the game menu, **hold "Back to main menu" for 5 seconds** to turn debug mode on (do it again to turn it off).
+A thin bar at the bottom of every screen shows a counter that changes every second (if it stops, the app froze),
+the keep-awake state, timers and the last log lines; the counter pauses while the Kindle sleeps and the bar logs
+when it paused and resumed. Everything also goes to `koreader/settings/lifecounter_debug.log`, and the game menu
+gets a "Debug log" item that shows the last lines, including the ones written before a freeze.
+
 ## Over-the-air updates (optional, advanced)
 
 The "Update" button downloads a new version from your own Cloudflare Worker. The Worker
