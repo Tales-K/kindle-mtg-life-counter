@@ -60,8 +60,8 @@ local function load_saved(store)
     return (Game.from_table(t))
 end
 
-local function demo_game(n)
-    local g = Game.new(n, 40)
+local function demo_game(n, seating)
+    local g = Game.new(n, 40, seating)
     local function set(i, f) if g.players[i] then f(g.players[i]) end end
     -- J1: dano de 2 oponentes (com 3+ jogadores) e veneno; J2 fora por 21 de J1; J6 fora por vida.
     set(1, function(p) p.life = 27; p.poison = 3; p.cmd[2] = 8; if g.players[3] then p.cmd[3] = 5 end end)
@@ -149,11 +149,11 @@ show_board = function(plugin, store, game)
     return board
 end
 
-local function choose_life(plugin, store, count)
+local function choose_life(plugin, store, count, seating)
     local items = {}
     for _, life in ipairs({ 20, 30, 40, 50 }) do
         items[#items + 1] = { text = life == 40 and t("life_default", { n = life }) or tostring(life), callback = function()
-            local game = Game.new(count, life)
+            local game = Game.new(count, life, seating)
             store:save(game:to_table())
             show_board(plugin, store, game)
         end }
@@ -167,8 +167,8 @@ end
 
 function App.pick_players(plugin, store)
     local items = {}
-    for n = 2, 6 do
-        items[#items + 1] = { text = t("players_n", { n = n }), callback = function() choose_life(plugin, store, n) end }
+    for _, it in ipairs(Menus.players()) do
+        items[#items + 1] = { text = it.text, callback = function() choose_life(plugin, store, it.count, it.seating) end }
     end
     items[#items + 1] = { text = t("back"), stay = true, callback = function(menu)
         menu:close()
@@ -266,7 +266,8 @@ function App.open(plugin)
     -- Ganchos so de desenvolvimento (emulador).
     local demo = tonumber(os.getenv("LIFECOUNTER_DEMO") or "")
     if demo then
-        local board = show_board(plugin, store, demo_game(demo))
+        local seating = os.getenv("LIFECOUNTER_DEMO_SEATING") -- "sides" com LIFECOUNTER_DEMO=4
+        local board = show_board(plugin, store, demo_game(demo, seating))
         -- "dono:oponente[:toques]" ou "dono:v[:toques]": toca no quadradinho do oponente (ou na gota)
         -- no painel do dono, como um jogador faria, e depois simula os toques no campo unico:
         -- "+"/"-" tocar, "H"/"h" segurar em +/-, "o" OK. Padrao: "++H".
@@ -274,7 +275,7 @@ function App.open(plugin)
         owner = tonumber(owner)
         local panel
         for _, q in ipairs(board.layout.panels) do if q.index == owner then panel = q end end
-        if panel then
+        if panel and not seating then
             local Geom = require("ui/geometry")
             local Layout = require("core.layout")
             local View = require("core.field_view")

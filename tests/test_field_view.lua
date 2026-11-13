@@ -123,3 +123,21 @@ H.test("delta keys: life, poison and commander damage per source", function()
     H.eq(View.delta_key(2, { kind = "poison" }), "poison:2")
     H.eq(View.delta_key(2, { kind = "commander", source = 4 }), "cmd:2:4")
 end)
+
+H.test("field sideways (owner on the left, rotation 90): upright is landscape, OK at the owner's edge", function()
+    local View = require("core.field_view")
+    local l = View.layout(1072, 1448, 90)
+    H.eq({ l.w, l.h, l.rotation }, { 1448, 1072, 90 })
+    H.eq(View.hit(l, 5, 724), "ok")          -- borda esquerda da tela = embaixo para ele
+    H.eq(View.hit(l, 536, 300), "minus")     -- mao esquerda dele aponta para o topo da tela
+    H.eq(View.hit(l, 536, 1200), "plus")
+end)
+
+H.test("field sideways (owner on the right, rotation 270)", function()
+    local View = require("core.field_view")
+    local l = View.layout(1072, 1448, 270)
+    H.eq({ l.w, l.h, l.rotation }, { 1448, 1072, 270 })
+    H.eq(View.hit(l, 1066, 724), "ok")
+    H.eq(View.hit(l, 536, 1200), "minus")
+    H.eq(View.hit(l, 536, 300), "plus")
+end)

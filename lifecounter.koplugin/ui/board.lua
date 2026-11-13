@@ -10,6 +10,8 @@ local Delta = require("core.delta")
 local View = require("core.field_view")
 local Layout = require("core.layout")
 local Panel = require("ui/panel")
+local SidePanel = require("ui/side_panel")
+local Sides = require("core.sides")
 local Draw = require("ui/draw")
 local I18n = require("core.i18n")
 local Guard = require("core.input_guard")
@@ -22,7 +24,9 @@ local Board = InputContainer:extend{ modal = true, covers_fullscreen = true, nam
 function Board:init()
     local w, h = Screen:getWidth(), Screen:getHeight()
     self.dimen = Geom:new{ x = 0, y = 0, w = w, h = h }
-    self.layout = Layout.compute(self.game.player_count, w, h)
+    -- Mesa "um de cada lado" (4 triangulos, core/sides) ou duas fileiras (core/layout).
+    self.sides = self.game.seating == "sides"
+    self.layout = self.sides and Sides.compute(w, h) or Layout.compute(self.game.player_count, w, h)
     self.cache = {}
     self.changes = 0
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
@@ -57,6 +61,7 @@ function Board:_ignored()
 end
 
 function Board:_in_center(pos)
+    if self.sides then return Sides.in_menu(self.layout, pos.x, pos.y) end
     local c = self.layout.center
     return pos.x >= c.x and pos.x < c.x + c.w and pos.y >= c.y and pos.y < c.y + c.h
 end
@@ -81,8 +86,14 @@ function Board:_act(index, zone, big, rotation)
     if self.changes % Tuning.FULL_REFRESH_EVERY == 0 then UIManager:setDirty(self, "full") end
 end
 
+function Board:_hit(x, y)
+    if self.sides then return Sides.hit(self.layout, x, y) end
+    return Layout.hit(self.layout, x, y)
+end
+
 function Board:_zone(hit)
     local p = hit.panel
+    if self.sides then return Sides.zone_at(p.uw, p.uh, hit.index, hit.lx, hit.ly) end
     return Layout.zone_at(p.w, p.h, self.game.player_count, p.rotation, hit.index, hit.lx, hit.ly)
 end
 
@@ -90,7 +101,7 @@ function Board:onTap(_, ges)
     if self.on_activity then self.on_activity() end
     if self:_ignored() then return true end
     local pos = ges.pos
-    local hit = Layout.hit(self.layout, pos.x, pos.y)
+    local hit = self:_hit(pos.x, pos.y)
     if not hit then
         if self:_in_center(pos) and self.on_menu then self.on_menu() end
         return true
@@ -104,7 +115,7 @@ function Board:onHold(_, ges)
     if self:_ignored() then return true end
     local mode = Tuning.HOLD_MODE
     if mode == "buttons" then return true end
-    local hit = Layout.hit(self.layout, ges.pos.x, ges.pos.y)
+    local hit = self:_hit(ges.pos.x, ges.pos.y)
     if not hit then return true end
     local zone = self:_zone(hit)
     if mode == "hold" then
@@ -143,8 +154,43 @@ function Board:_schedule_expiry(now)
     if soon then UIManager:scheduleIn(math.max(0.05, soon - now + 0.05), self._expire) end
 end
 
+-- Mesa "um de cada lado": os triangulos vao para uma tela pronta (composite), linha a linha, so a
+-- parte de cada linha que e do triangulo; so os que mudaram sao refeitos.
+function Board:_paint_sides(bb, now)
+    local l = self.layout
+    if not self.composite then
+        self.composite = Blitbuffer.new(l.w, l.h, Screen.bb:getType())
+        self.composite:fill(Blitbuffer.COLOR_WHITE)
+    end
+    local changed = false
+    for _, p in ipairs(l.panels) do
+        local key = self:_key(p.index, now)
+        local entry = self.cache[p.index]
+        if not entry or entry.key ~= key then
+            local pb = SidePanel.render_oriented(self.game, p, self:_delta(p.index, now))
+            for row = p.y, p.y + p.h - 1 do
+                local s = Sides.span(l, p, row)
+                if s then self.composite:blitFrom(pb, s[1], row, s[1] - p.x, row - p.y, s[2] - s[1], 1) end
+            end
+            pb:free()
+            self.cache[p.index] = { key = key }
+            changed = true
+        end
+    end
+    if changed then SidePanel.decorate(self.composite, l) end
+    bb:blitFrom(self.composite, 0, 0, 0, 0, l.w, l.h)
+end
+
 function Board:paintTo(bb, x, y)
     local now = socket.gettime()
+    if self.sides then
+        self:_paint_sides(bb, now)
+        self:_schedule_expiry(now)
+        if self.guard.waiting_paint then
+            UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
+        end
+        return
+    end
     bb:paintRect(0, 0, self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
     for _, p in ipairs(self.layout.panels) do
         local key = self:_key(p.index, now)
@@ -177,8 +223,9 @@ end
 function Board:onCloseWidget()
     self.closed = true
     UIManager:unschedule(self._expire)
-    for _, e in pairs(self.cache) do e.bb:free() end
+    for _, e in pairs(self.cache) do if e.bb then e.bb:free() end end
     self.cache = {}
+    if self.composite then self.composite:free(); self.composite = nil end
 end
 
 return Board

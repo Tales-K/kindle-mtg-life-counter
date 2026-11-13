@@ -30,6 +30,16 @@ function M.game()
     }
 end
 
+-- Quantos jogadores: 2..6, e o 4 tambem "um de cada lado" (mesa em X, core/sides).
+function M.players()
+    local items = {}
+    for n = 2, 6 do
+        items[#items + 1] = { count = n, text = I18n.t("players_n", { n = n }) }
+        if n == 4 then items[#items + 1] = { count = 4, seating = "sides", text = I18n.t("players_sides") } end
+    end
+    return items
+end
+
 -- Botao de idioma: metade esquerda e o ingles, metade direita o portugues.
 function M.language_at(r, x)
     return x < r.x + math.floor(r.w / 2) and "en" or "pt"

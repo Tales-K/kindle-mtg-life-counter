@@ -43,3 +43,4 @@ Marque cada item depois de testar no aparelho.
 - [ ] Versão quebrada de propósito: o plugin volta sozinho para a anterior.
 
 Resultados e observações:
+- [ ] "4 jogadores · um de cada lado": 4 triângulos (diagonais), cada um virado para a sua borda; ± pela metade do triângulo; campo de comandante/veneno dos laterais deitado para o jogador; botão redondo no centro abre o menu.

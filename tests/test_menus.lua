@@ -67,3 +67,17 @@ H.test("language half: left half is English, right half is Portuguese", function
     H.eq(Menus.language_at(r, 500), "pt")
     H.eq(Menus.language_at(r, 899), "pt")
 end)
+
+H.test("player count menu: 2, 3, 4, 4 one per side, 5, 6", function()
+    I18n.set("en")
+    local items = Menus.players()
+    local got = {}
+    for i, it in ipairs(items) do got[i] = { it.count, it.seating or "-", it.text } end
+    H.eq(got, {
+        { 2, "-", "2 players" }, { 3, "-", "3 players" }, { 4, "-", "4 players" },
+        { 4, "sides", "4 players · one per side" }, { 5, "-", "5 players" }, { 6, "-", "6 players" },
+    })
+    I18n.set("pt")
+    H.eq(Menus.players()[4].text, "4 jogadores · um de cada lado")
+    I18n.set("en")
+end)

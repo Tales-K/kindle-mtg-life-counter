@@ -11,14 +11,20 @@ local function is_int(v)
     return type(v) == "number" and v == math.floor(v)
 end
 
-function Game.new(player_count, starting_life)
+-- seating: nil (duas fileiras) ou "sides" (4 jogadores, um de cada lado da mesa: core/sides).
+local function bad_seating(seating, n)
+    return seating ~= nil and not (seating == "sides" and n == 4)
+end
+
+function Game.new(player_count, starting_life, seating)
     if not is_int(player_count) or player_count < MIN_PLAYERS or player_count > MAX_PLAYERS then
         error("player_count must be an integer from 2 to 6", 2)
     end
     if not is_int(starting_life) or starting_life < 1 then
         error("starting_life must be an integer >= 1", 2)
     end
-    local self = setmetatable({ player_count = player_count, starting_life = starting_life, players = {} }, Game)
+    if bad_seating(seating, player_count) then error("seating 'sides' needs 4 players", 2) end
+    local self = setmetatable({ player_count = player_count, starting_life = starting_life, seating = seating, players = {} }, Game)
     for i = 1, player_count do
         self.players[i] = { life = starting_life, poison = 0, cmd = {} }
     end
@@ -56,7 +62,7 @@ function Game:status(i)
 end
 
 function Game:to_table()
-    local t = { player_count = self.player_count, starting_life = self.starting_life, players = {} }
+    local t = { player_count = self.player_count, starting_life = self.starting_life, seating = self.seating, players = {} }
     for i = 1, self.player_count do
         local p = self.players[i]
         local cmd = {}
@@ -72,7 +78,8 @@ function Game.from_table(t)
     if not is_int(n) or n < MIN_PLAYERS or n > MAX_PLAYERS then return nil, "bad player_count" end
     if not is_int(sl) or sl < 1 then return nil, "bad starting_life" end
     if type(t.players) ~= "table" then return nil, "no players" end
-    local self = setmetatable({ player_count = n, starting_life = sl, players = {} }, Game)
+    if bad_seating(t.seating, n) then return nil, "bad seating" end
+    local self = setmetatable({ player_count = n, starting_life = sl, seating = t.seating, players = {} }, Game)
     for i = 1, n do
         local p = t.players[i]
         if type(p) ~= "table" then return nil, "missing player " .. i end

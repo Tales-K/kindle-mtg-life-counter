@@ -26,6 +26,16 @@ function Draw.on_top(UIManager, w)
 end
 
 -- Texto que cabe em (max_w x max_h): reduz a fonte ate caber, nunca corta.
+-- Gira o desenho "em pe" para a borda do jogador, no mesmo sentido de core/sides (to_screen):
+-- 90 = o "cima" do desenho aponta para a direita da tela. O Blitbuffer gira no sentido contrario.
+-- Libera `bb` quando gira.
+function Draw.orient(bb, rotation)
+    if not rotation or rotation == 0 then return bb end
+    local r = bb:rotatedCopy((360 - rotation) % 360)
+    bb:free()
+    return r
+end
+
 function Draw.fit_text(text, max_w, max_h, size, bold)
     local tw
     while size >= 6 do

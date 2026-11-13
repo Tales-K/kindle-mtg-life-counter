@@ -169,3 +169,28 @@ H.test("from_table rejects bad data", function()
     t.players[1].life = "x"
     H.eq(Game.from_table(t), nil)
 end)
+
+H.test("seating: 4 players one per side is kept and saved", function()
+    local Game = require("core.game")
+    local g = Game.new(4, 40, "sides")
+    H.eq(g.seating, "sides")
+    local back = Game.from_table(g:to_table())
+    H.eq(back.seating, "sides")
+end)
+
+H.test("seating: default (rows) has no seating field", function()
+    local Game = require("core.game")
+    local g = Game.new(4, 40)
+    H.eq(g.seating, nil)
+    H.eq(g:to_table().seating, nil)
+    H.eq(Game.from_table(g:to_table()).seating, nil)
+end)
+
+H.test("seating: one per side only exists for 4 players; unknown values are refused", function()
+    local Game = require("core.game")
+    H.raises(function() Game.new(3, 40, "sides") end)
+    H.raises(function() Game.new(4, 40, "circle") end)
+    local t = Game.new(4, 40, "sides"):to_table()
+    t.seating = "circle"
+    H.eq(select(2, Game.from_table(t)), "bad seating")
+end)

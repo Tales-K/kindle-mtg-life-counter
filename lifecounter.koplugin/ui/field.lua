@@ -10,6 +10,7 @@ local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
 local Delta = require("core.delta")
 local Layout = require("core.layout")
+local Sides = require("core.sides")
 local View = require("core.field_view")
 local Draw = require("ui/draw")
 local I18n = require("core.i18n")
@@ -96,7 +97,9 @@ function Field:_mini(bb)
         return
     end
     local inset, radius = math.floor(4 * k + 0.5), math.floor(10 * k + 0.5)
-    for _, c in ipairs(Layout.minimap(self.game.player_count, l.rotation, m.w, m.h)) do
+    local cells = self.game.seating == "sides" and Sides.minimap(self.owner, m.w, m.h)
+        or Layout.minimap(self.game.player_count, l.rotation, m.w, m.h)
+    for _, c in ipairs(cells) do
         local r = { x = m.x + c.x + inset, y = m.y + c.y, w = c.w - 2 * inset, h = c.h }
         local cx, cy = r.x + r.w / 2, r.y + r.h / 2
         local size = math.min(30 * k, r.h * 0.45, r.w * 0.28)
@@ -148,11 +151,7 @@ function Field:_render_upright()
 end
 
 function Field:_render()
-    local bb = self:_render_upright()
-    if self.layout.rotation ~= 180 then return bb end
-    local rot = bb:rotatedCopy(180)
-    bb:free()
-    return rot
+    return Draw.orient(self:_render_upright(), self.layout.rotation)
 end
 
 function Field:_delta(now)

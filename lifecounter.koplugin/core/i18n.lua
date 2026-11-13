@@ -31,6 +31,7 @@ I18n.STRINGS = {
         -- Nova partida.
         pick_players_title = "Players",
         players_n = "{n} players",
+        players_sides = "4 players · one per side",
         life_title = "Starting life",
         life_default = "{n} (Commander default)",
         -- Campo unico.
@@ -79,6 +80,7 @@ I18n.STRINGS = {
         cancel = "Cancelar",
         pick_players_title = "Quantos jogadores?",
         players_n = "{n} jogadores",
+        players_sides = "4 jogadores · um de cada lado",
         life_title = "Vida inicial",
         life_default = "{n} (padrão commander)",
         field_commander = "{player} · dano de comandante de {source}",

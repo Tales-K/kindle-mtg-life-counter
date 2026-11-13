@@ -4,12 +4,18 @@
 -- De cima para baixo, "em pe": titulo, miniatura da mesa, numero com metades -/+, botao OK.
 local Game = require("core.game")
 local I18n = require("core.i18n")
+local Sides = require("core.sides")
 
 local View = {}
 
 local function rnd(v) return math.floor(v + 0.5) end
 
-function View.layout(w, h, rotation)
+-- w x h: a tela. rotation 90/270 (jogador na esquerda/direita, mesa "um de cada lado"): o campo
+-- "em pe" fica deitado (h x w) e e girado para a borda dele.
+function View.layout(sw, sh, rotation)
+    if rotation ~= 90 and rotation ~= 180 and rotation ~= 270 then rotation = 0 end
+    local w, h = sw, sh
+    if rotation == 90 or rotation == 270 then w, h = sh, sw end
     local kx, ky = w / 1072, h / 1448
     local k = math.min(kx, ky)
     local m = rnd(24 * k)
@@ -18,7 +24,7 @@ function View.layout(w, h, rotation)
     local mw, mh = rnd(300 * kx), rnd(170 * ky)
     local by = fb + rnd(24 * ky)
     return {
-        w = w, h = h, rotation = rotation == 180 and 180 or 0, k = k, kx = kx, ky = ky, m = m,
+        w = w, h = h, sw = sw, sh = sh, rotation = rotation, k = k, kx = kx, ky = ky, m = m,
         -- Zonas de toque (sem folga entre elas; o cabecalho nao reage).
         zones = {
             minus = { x = 0, y = fy, w = half, h = fb - fy },
@@ -39,8 +45,8 @@ end
 
 -- Toque na tela -> "minus" | "plus" | "ok" | nil.
 function View.hit(l, x, y)
-    if x < 0 or y < 0 or x >= l.w or y >= l.h then return nil end
-    if l.rotation == 180 then x, y = l.w - 1 - x, l.h - 1 - y end
+    if x < 0 or y < 0 or x >= l.sw or y >= l.sh then return nil end
+    x, y = Sides.to_upright(l.rotation, l.sw, l.sh, x, y)
     for _, name in ipairs({ "minus", "plus", "ok" }) do
         if inside(l.zones[name], x, y) then return name end
     end
