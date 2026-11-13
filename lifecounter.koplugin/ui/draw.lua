@@ -87,6 +87,23 @@ function Draw.text(bb, x, cy, text, px, opts)
     return w
 end
 
+function Draw.text_width(text, px, bold)
+    local tw = widget(text, px, bold)
+    local w = tw:getSize().w
+    tw:free()
+    return w
+end
+
+-- Etiqueta "P3 comeca": pilula cheia na cor fg com o texto na cor bg. align como Draw.text.
+function Draw.badge(bb, x, cy, text, px, fg, bg, align)
+    local w = Draw.text_width(text, px, true)
+    local pad = math.floor(px * 0.45)
+    local left = align == "left" and x - pad or x - w / 2 - pad
+    Draw.fill_round(bb, { x = math.floor(left), y = math.floor(cy - px * 0.8), w = math.floor(w + 2 * pad), h = math.floor(px * 1.6) },
+        fg, math.floor(px * 0.5))
+    Draw.text(bb, left + pad, cy, text, px, { bold = true, color = bg, align = "left" })
+end
+
 -- Maior tamanho (px) em que `text` cabe em max_w de largura e max_h de altura de algarismo.
 -- Os algarismos da Noto tem a mesma largura, entao o resultado vale para qualquer numero com
 -- a mesma quantidade de caracteres (guardado em cache).

@@ -24,6 +24,7 @@ end
 function M.game()
     return {
         item("back", "menu_back"),
+        item("who_starts", "menu_who_starts"),
         item("main_menu", "menu_main_menu"),
         item("new", "menu_new"),
         item("exit", "menu_exit"),

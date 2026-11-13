@@ -39,7 +39,8 @@ end
 
 -- Painel "em pe", do tamanho pw x ph. rotation (0/180) so gira a miniatura da mesa.
 -- delta: texto da variacao recente da vida ("-6"), pequeno em cima da vida, ou nil.
-function Panel.render(game, index, pw, ph, rotation, delta)
+-- starter: true no painel de quem foi sorteado para comecar (etiqueta no lugar do nome).
+function Panel.render(game, index, pw, ph, rotation, delta, starter)
     local player = game.players[index]
     local out = game:status(index) ~= nil
     local g = Layout.panel(pw, ph, game.player_count)
@@ -53,7 +54,11 @@ function Panel.render(game, index, pw, ph, rotation, delta)
         Draw.border_round(bb, { x = b.inset, y = b.inset, w = pw - 2 * b.inset, h = ph - 2 * b.inset }, b.width, fg, b.radius)
     end
 
-    Draw.text(bb, g.label.x, g.label.cy, I18n.player(index), g.label.size, { bold = true, color = fg, align = "left" })
+    if starter then
+        Draw.badge(bb, g.label.x, g.label.cy, I18n.t("starts_badge", { player = I18n.player(index) }), math.floor(g.label.size * 1.25), fg, bg, "left")
+    else
+        Draw.text(bb, g.label.x, g.label.cy, I18n.player(index), g.label.size, { bold = true, color = fg, align = "left" })
+    end
 
     Draw.border_round(bb, g.strip, g.strip.width, fg, g.strip.radius)
     local i = g.icon
@@ -79,8 +84,8 @@ function Panel.render(game, index, pw, ph, rotation, delta)
 end
 
 -- Painel ja virado para quem esta sentado (rotation 0 ou 180). O chamador libera o buffer.
-function Panel.render_oriented(game, index, pw, ph, rotation, delta)
-    local bb = Panel.render(game, index, pw, ph, rotation, delta)
+function Panel.render_oriented(game, index, pw, ph, rotation, delta, starter)
+    local bb = Panel.render(game, index, pw, ph, rotation, delta, starter)
     if rotation == 180 then
         local rotated = bb:rotatedCopy(180)
         bb:free()

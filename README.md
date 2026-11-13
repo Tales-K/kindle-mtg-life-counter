@@ -116,7 +116,9 @@ their own panel facing their side. Inspired by LifeTap.
   that opponent's field (single number). **21** from one commander eliminates the player.
 - **Poison:** tap the drop. **10** eliminates the player.
 - **Reviving:** lowering the number that caused the elimination brings the player back.
-- **MENU** (center of the table): Back to game, Back to main menu, New game, Exit.
+- **MENU** (center of the table): Back to game, Who starts?, Back to main menu, New game, Exit.
+- **Who starts?** rolls a die from 1 to the number of players: the number flips a few times in the middle
+  of the table and stops; the chosen player's panel shows "P3 starts", facing that player.
 - **Language:** pick the flag on the start screen (English by default).
 - **Screen stays on:** the Kindle does not sleep during a game, until 30 minutes without a touch.
 - **Saving:** the game is saved on every tap.

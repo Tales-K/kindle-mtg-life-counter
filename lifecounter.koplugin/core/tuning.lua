@@ -9,5 +9,9 @@ return {
     KEEP_AWAKE_S = 30 * 60,    -- Kindle nao dorme na partida ate 30 min sem nenhum toque
     HOLD_REPEAT_S = 1.0,       -- segurando o +-10: mais um +-10 a cada este tempo, ate soltar
     HOLD_REPEAT_MAX = 20,      -- ...no maximo esta quantidade (se o "soltar" se perder)
-    DELTA_S = 3,               -- o "-6" em cima do numero some depois deste tempo sem mudar
+    DELTA_S = 3,
+    STARTER_FRAMES = 6,        -- "Quem comeca?": quadros do sorteio (poucos, por causa do e-ink)...
+    STARTER_FRAME_S = 0.35,    -- ...um a cada este tempo
+    DICE_HOLD_S = 2.5,         -- o resultado fica no centro por este tempo
+    STARTER_SHOW_S = 15,       -- a etiqueta "comeca" fica no painel ate a 1a mudanca ou este tempo               -- o "-6" em cima do numero some depois deste tempo sem mudar
 }

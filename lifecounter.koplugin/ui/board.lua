@@ -7,6 +7,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
 local Delta = require("core.delta")
+local Starter = require("core.starter")
 local HoldRepeat = require("core.hold_repeat")
 local View = require("core.field_view")
 local Layout = require("core.layout")
@@ -59,6 +60,11 @@ function Board:init()
         end
         self:_schedule_expiry(now)
     end
+    self._dice_off = function()
+        self.dice = nil
+        self:_dirty("ui", self:_dice_rect())
+    end
+    self._starter_off = function() self:_clear_starter() end
     self.ges_events = {
         Tap = { GestureRange:new{ ges = "tap", range = self.dimen } },
         Hold = { GestureRange:new{ ges = "hold", range = self.dimen } },
@@ -94,6 +100,7 @@ function Board:_act(index, zone, big, rotation)
     end
     if result ~= "changed" then return end
     self.deltas:add(View.life_key(index), self.game.players[index].life - before, socket.gettime())
+    self:_clear_starter() -- a partida comecou: some a etiqueta "comeca"
     self.changes = self.changes + 1
     local p = self:_panel(index)
     local region = Geom:new{ x = p.x, y = p.y, w = p.w, h = p.h }
@@ -166,6 +173,70 @@ end
 
 function Board:_key(index, now)
     return status_key(self.game.players[index], self.game:status(index)) .. "|" .. (self:_delta(index, now) or "")
+        .. (self.starter == index and "|S" or "")
+end
+
+-- Marca a regiao para redesenhar se a tela estiver visivel (se nao, ao voltar para cima ela e
+-- redesenhada inteira de qualquer jeito).
+function Board:_dirty(mode, r)
+    if self.closed or not Draw.on_top(UIManager, self) then return end
+    local region = Geom:new{ x = r.x, y = r.y, w = r.w, h = r.h }
+    UIManager:setDirty(self, function() return mode, region end)
+end
+
+-- Quadrado do sorteio no centro da tela.
+function Board:_dice_rect()
+    local s = math.floor(240 * self.dimen.w / 1072)
+    return { x = math.floor((self.dimen.w - s) / 2), y = math.floor((self.dimen.h - s) / 2), w = s, h = s }
+end
+
+function Board:_clear_starter()
+    if not self.starter then return end
+    local p = self:_panel(self.starter)
+    self.starter = nil
+    UIManager:unschedule(self._starter_off)
+    if p then self:_dirty(Tuning.REFRESH_MODE, p) end
+end
+
+-- "Quem comeca?": poucos quadros com o numero trocando no centro (so aquele quadrado e
+-- atualizado), depois o resultado fica alguns segundos e o painel sorteado ganha a etiqueta
+-- "P3 comeca", virada para o jogador.
+function Board:roll_starter()
+    if self.rolling or self.closed then return end
+    self.rolling = true
+    self:_clear_starter()
+    if not Board.seeded then math.randomseed(math.floor(socket.gettime() * 1000) % 2147483647); Board.seeded = true end
+    local r = Starter.roll(self.game.player_count, math.random, Tuning.STARTER_FRAMES)
+    local rect = self:_dice_rect()
+    UIManager:unschedule(self._dice_off)
+    for i, v in ipairs(r.frames) do
+        UIManager:scheduleIn((i - 1) * Tuning.STARTER_FRAME_S, function()
+            if self.closed then return end
+            local last = i == #r.frames
+            self.dice = { value = v, final = last }
+            self:_dirty(Tuning.REFRESH_MODE, rect)
+            if not last then return end
+            self.rolling = false
+            self.starter = r.result
+            self:_dirty("ui", self:_panel(r.result))
+            UIManager:scheduleIn(Tuning.DICE_HOLD_S, self._dice_off)
+            UIManager:unschedule(self._starter_off)
+            UIManager:scheduleIn(Tuning.STARTER_SHOW_S, self._starter_off)
+        end)
+    end
+end
+
+function Board:_paint_dice(bb)
+    local d = self.dice
+    if not d then return end
+    local r = self:_dice_rect()
+    local k = r.w / 240
+    local fg, bg = Blitbuffer.COLOR_BLACK, Blitbuffer.COLOR_WHITE
+    if d.final then fg, bg = bg, fg end
+    Draw.fill_round(bb, r, Blitbuffer.COLOR_BLACK, math.floor(30 * k))
+    local inner = { x = r.x + math.floor(8 * k), y = r.y + math.floor(8 * k), w = r.w - math.floor(16 * k), h = r.h - math.floor(16 * k) }
+    Draw.fill_round(bb, inner, bg, math.floor(24 * k))
+    Draw.text(bb, r.x + r.w / 2, r.y + r.h / 2, I18n.player(d.value), 110 * k, { bold = true, color = fg })
 end
 
 function Board:_schedule_expiry(now)
@@ -187,7 +258,7 @@ function Board:_paint_sides(bb, now)
         local key = self:_key(p.index, now)
         local entry = self.cache[p.index]
         if not entry or entry.key ~= key then
-            local pb = SidePanel.render_oriented(self.game, p, self:_delta(p.index, now))
+            local pb = SidePanel.render_oriented(self.game, p, self:_delta(p.index, now), self.starter == p.index)
             for row = p.y, p.y + p.h - 1 do
                 local s = Sides.span(l, p, row)
                 if s then self.composite:blitFrom(pb, s[1], row, s[1] - p.x, row - p.y, s[2] - s[1], 1) end
@@ -205,6 +276,7 @@ function Board:paintTo(bb, x, y)
     local now = socket.gettime()
     if self.sides then
         self:_paint_sides(bb, now)
+        self:_paint_dice(bb)
         self:_schedule_expiry(now)
         if self.guard.waiting_paint then
             UIManager:nextTick(function() self.guard:painted(socket.gettime()) end)
@@ -217,7 +289,7 @@ function Board:paintTo(bb, x, y)
         local entry = self.cache[p.index]
         if not entry or entry.key ~= key then
             if entry then entry.bb:free() end
-            entry = { key = key, bb = Panel.render_oriented(self.game, p.index, p.w, p.h, p.rotation, self:_delta(p.index, now)) }
+            entry = { key = key, bb = Panel.render_oriented(self.game, p.index, p.w, p.h, p.rotation, self:_delta(p.index, now), self.starter == p.index) }
             self.cache[p.index] = entry
         end
         bb:blitFrom(entry.bb, p.x, p.y, 0, 0, p.w, p.h)
@@ -232,6 +304,7 @@ function Board:paintTo(bb, x, y)
     local button = { x = c.x + math.floor((c.w - bw) / 2), y = c.y + pad, w = bw, h = c.h - 2 * pad }
     Draw.border_round(bb, button, lw, Blitbuffer.COLOR_BLACK, math.floor(14 * k))
     Draw.text(bb, c.x + c.w / 2, c.y + c.h / 2, I18n.t("menu_button"), 36 * k, { bold = true })
+    self:_paint_dice(bb)
     self:_schedule_expiry(now)
     -- A trava conta a partir do fim da atualizacao do e-ink (que vem depois do desenho e,
     -- no Kindle, segura os toques na fila por ~0,4 s): o nextTick roda logo apos o refresh.
@@ -243,6 +316,8 @@ end
 function Board:onCloseWidget()
     self.closed = true
     self.repeat_hold:stop()
+    UIManager:unschedule(self._dice_off)
+    UIManager:unschedule(self._starter_off)
     UIManager:unschedule(self._expire)
     for _, e in pairs(self.cache) do if e.bb then e.bb:free() end end
     self.cache = {}

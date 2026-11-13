@@ -118,6 +118,10 @@ show_board = function(plugin, store, game)
         on_menu = function()
             show_menu(t("game_menu_title"), with_actions(Menus.game(), {
                 back = {},
+                -- Sorteio de quem comeca: o menu fecha e o sorteio roda na tela de jogo.
+                who_starts = { callback = function()
+                    UIManager:scheduleIn(0.4, function() board:roll_starter() end)
+                end },
                 -- Fecha a partida (fica salva) e volta para a tela inicial; o close_board para o modo acordado.
                 main_menu = { stay = true, callback = function(menu)
                     show_start(plugin, store)

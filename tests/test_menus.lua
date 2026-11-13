@@ -41,22 +41,22 @@ H.test("start menu: the language item is drawn as flags", function()
     H.eq(items[3].kind, "language")
 end)
 
-H.test("game menu ids are stable: back, main_menu, new, exit (no Restart, no Open KOReader)", function()
+H.test("game menu ids are stable: back, who_starts, main_menu, new, exit", function()
     for _, lang in ipairs({ "en", "pt" }) do
         I18n.set(lang)
-        H.eq(ids(Menus.game()), { "back", "main_menu", "new", "exit" })
+        H.eq(ids(Menus.game()), { "back", "who_starts", "main_menu", "new", "exit" })
     end
     I18n.set("en")
 end)
 
 H.test("game menu in English", function()
     I18n.set("en")
-    H.eq(labels(Menus.game()), { "Back to game", "Back to main menu", "New game", "Exit" })
+    H.eq(labels(Menus.game()), { "Back to game", "Who starts?", "Back to main menu", "New game", "Exit" })
 end)
 
 H.test("game menu in Portuguese", function()
     I18n.set("pt")
-    H.eq(labels(Menus.game()), { "Voltar ao jogo", "Voltar ao menu principal", "Nova partida", "Sair" })
+    H.eq(labels(Menus.game()), { "Voltar ao jogo", "Quem começa?", "Voltar ao menu principal", "Nova partida", "Sair" })
     I18n.set("en")
 end)
 

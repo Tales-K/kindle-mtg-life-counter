@@ -34,7 +34,7 @@ local function minimap(bb, g, game, index, fg, bg)
 end
 
 -- Triangulo "em pe" (uw x uh, ponta no meio de cima). delta: "-6" pequeno em cima da vida, ou nil.
-function SidePanel.render(game, index, uw, uh, delta)
+function SidePanel.render(game, index, uw, uh, delta, starter)
     local player = game.players[index]
     local out = game:status(index) ~= nil
     local g = Sides.panel(uw, uh)
@@ -46,7 +46,11 @@ function SidePanel.render(game, index, uw, uh, delta)
         Draw.trapezoid(bb, uw / 2, 0, uh, 0, uw / 2 + 1, BLACK)
     end
 
-    Draw.text(bb, uw / 2, g.label.cy, I18n.player(index), g.label.size, { bold = true, color = fg })
+    if starter then
+        Draw.badge(bb, uw / 2, g.label.cy, I18n.t("starts_badge", { player = I18n.player(index) }), math.floor(g.label.size * 1.25), fg, bg)
+    else
+        Draw.text(bb, uw / 2, g.label.cy, I18n.player(index), g.label.size, { bold = true, color = fg })
+    end
 
     Draw.border_round(bb, g.strip, g.strip.width, fg, g.strip.radius)
     local i = g.icon
@@ -74,8 +78,8 @@ function SidePanel.render(game, index, uw, uh, delta)
 end
 
 -- Ja girado para a borda do jogador (p de Sides.compute). O chamador libera o buffer.
-function SidePanel.render_oriented(game, p, delta)
-    return Draw.orient(SidePanel.render(game, p.index, p.uw, p.uh, delta), p.rotation)
+function SidePanel.render_oriented(game, p, delta, starter)
+    return Draw.orient(SidePanel.render(game, p.index, p.uw, p.uh, delta, starter), p.rotation)
 end
 
 -- Diagonais da mesa e o botao de menu redondo no centro, por cima dos triangulos.
