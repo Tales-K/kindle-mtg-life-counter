@@ -9,6 +9,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
 local Delta = require("core.delta")
+local HoldRepeat = require("core.hold_repeat")
 local Layout = require("core.layout")
 local Sides = require("core.sides")
 local View = require("core.field_view")
@@ -21,6 +22,14 @@ local Screen = Device.screen
 
 local BLACK, WHITE = Blitbuffer.COLOR_BLACK, Blitbuffer.COLOR_WHITE
 
+local function repeater(fire)
+    return HoldRepeat.new{
+        interval = Tuning.HOLD_REPEAT_S, max = Tuning.HOLD_REPEAT_MAX, fire = fire,
+        schedule = function(d, cb) UIManager:scheduleIn(d, cb) end,
+        unschedule = function(cb) UIManager:unschedule(cb) end,
+    }
+end
+
 local Field = InputContainer:extend{ modal = true, covers_fullscreen = true, name = "lifecounter_field" }
 
 function Field:init()
@@ -30,6 +39,12 @@ function Field:init()
     self.guard:arm(socket.gettime())
     self.layout = View.layout(w, h, self.rotation)
     self.deltas = self.deltas or Delta.new(Tuning.DELTA_S)
+    -- Segurando o -/+ do dano de comandante: repete o +-10 ate soltar.
+    self.repeat_hold = repeater(function(action)
+        if self.closed then return end
+        if self.on_activity then self.on_activity() end
+        self:_do(action, true)
+    end)
     self.key = View.delta_key(self.owner, self.field)
     -- Quando o "-6" deve sumir: redesenha o campo se ele estiver na tela.
     self._expire = function()
@@ -63,6 +78,7 @@ function Field:_do(action, big)
 end
 
 function Field:onTap(_, ges)
+    self.repeat_hold:stop()
     if self.on_activity then self.on_activity() end
     if self.guard:ignore(socket.gettime()) then return true end
     self:_do(View.hit(self.layout, ges.pos.x, ges.pos.y), false)
@@ -76,12 +92,18 @@ function Field:onHold(_, ges)
     if mode == "buttons" then return true end
     local action = View.hit(self.layout, ges.pos.x, ges.pos.y)
     if action == "minus" or action == "plus" then
-        if mode == "hold" then self:_do(action, true) else self.pending = action end
+        if mode == "hold" then
+            self:_do(action, true)
+            if self.field.kind == "commander" then self.repeat_hold:start(action) end
+        else
+            self.pending = action
+        end
     end
     return true
 end
 
 function Field:onHoldRelease()
+    self.repeat_hold:stop()
     local action = self.pending
     self.pending = nil
     if action then self:_do(action, true) end
@@ -179,6 +201,7 @@ end
 
 function Field:onCloseWidget()
     self.closed = true
+    self.repeat_hold:stop()
     UIManager:unschedule(self._expire)
     if self.bb then self.bb:free(); self.bb = nil end
 end

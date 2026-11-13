@@ -7,6 +7,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local UIManager = require("ui/uimanager")
 local Actions = require("core.actions")
 local Delta = require("core.delta")
+local HoldRepeat = require("core.hold_repeat")
 local View = require("core.field_view")
 local Layout = require("core.layout")
 local Panel = require("ui/panel")
@@ -18,6 +19,14 @@ local Guard = require("core.input_guard")
 local Tuning = require("core.tuning")
 local socket = require("socket")
 local Screen = Device.screen
+
+local function repeater(fire)
+    return HoldRepeat.new{
+        interval = Tuning.HOLD_REPEAT_S, max = Tuning.HOLD_REPEAT_MAX, fire = fire,
+        schedule = function(d, cb) UIManager:scheduleIn(d, cb) end,
+        unschedule = function(cb) UIManager:unschedule(cb) end,
+    }
+end
 
 local Board = InputContainer:extend{ modal = true, covers_fullscreen = true, name = "lifecounter_board" }
 
@@ -32,6 +41,12 @@ function Board:init()
     self.guard = Guard.window(Tuning.OPEN_GUARD_S)
     self.guard:arm(socket.gettime())
     self.deltas = self.deltas or Delta.new(Tuning.DELTA_S)
+    -- Segurando o -/+: depois do primeiro +-10, repete ate soltar (cada passo so atualiza o painel).
+    self.repeat_hold = repeater(function(a)
+        if self.closed then return end
+        if self.on_activity then self.on_activity() end
+        self:_act(a.index, a.zone, true)
+    end)
     -- Quando um "-6" deve sumir: redesenha so os paineis cujo desenho mudou.
     self._expire = function()
         if self.closed or not Draw.on_top(UIManager, self) then return end
@@ -98,6 +113,7 @@ function Board:_zone(hit)
 end
 
 function Board:onTap(_, ges)
+    self.repeat_hold:stop() -- qualquer toque novo encerra uma repeticao que tenha ficado ligada
     if self.on_activity then self.on_activity() end
     if self:_ignored() then return true end
     local pos = ges.pos
@@ -120,6 +136,9 @@ function Board:onHold(_, ges)
     local zone = self:_zone(hit)
     if mode == "hold" then
         self:_act(hit.index, zone, true)
+        if zone and (zone.zone == "plus" or zone.zone == "minus") then
+            self.repeat_hold:start({ index = hit.index, zone = zone })
+        end
     else
         self.pending_hold = { index = hit.index, zone = zone }
     end
@@ -127,6 +146,7 @@ function Board:onHold(_, ges)
 end
 
 function Board:onHoldRelease()
+    self.repeat_hold:stop()
     local p = self.pending_hold
     self.pending_hold = nil
     if p then self:_act(p.index, p.zone, true) end
@@ -222,6 +242,7 @@ end
 
 function Board:onCloseWidget()
     self.closed = true
+    self.repeat_hold:stop()
     UIManager:unschedule(self._expire)
     for _, e in pairs(self.cache) do if e.bb then e.bb:free() end end
     self.cache = {}
